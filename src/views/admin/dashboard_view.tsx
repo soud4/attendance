@@ -3,9 +3,10 @@ import type { EventWithStats } from "../../services/event.service";
 interface DashboardViewProps {
   events: EventWithStats[];
   noticeMessage?: string;
+  currentView?: "cards" | "table";
 }
 
-export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
+export function DashboardView({ events, noticeMessage, currentView = "cards" }: DashboardViewProps) {
   const totalEvents = events.length;
   const openEvents = events.filter((e) => e.status === "OPEN").length;
   const totalAttendances = events.reduce((sum, e) => sum + e.attendee_count, 0);
@@ -16,23 +17,59 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-white">Eventos Registrados</h1>
-          <p class="text-xs text-neutral-400 mt-1">Supervisa y controla la asistencia de tus actividades presenciales</p>
+          <p class="text-xs text-neutral-400 mt-1">Supervisa, administra y controla la asistencia de tus actividades presenciales</p>
         </div>
 
-        <a
-          href="/admin/events/new"
-          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
-        >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Nuevo Evento</span>
-        </a>
+        <div class="flex items-center gap-3">
+          {/* View Switcher Toggle */}
+          <div class="bg-neutral-900 border border-neutral-800 p-1 rounded-xl flex items-center gap-1 shadow-sm">
+            <a
+              href="/admin?view=cards"
+              title="Vista de Tarjetas"
+              class={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                currentView === "cards"
+                  ? "bg-neutral-800 text-white shadow-sm border border-neutral-700/60"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span>Tarjetas</span>
+            </a>
+
+            <a
+              href="/admin?view=table"
+              title="Vista de Tabla"
+              class={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                currentView === "table"
+                  ? "bg-neutral-800 text-white shadow-sm border border-neutral-700/60"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Tabla</span>
+            </a>
+          </div>
+
+          {/* New Event Button */}
+          <a
+            href="/admin/events/new"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Nuevo Evento</span>
+          </a>
+        </div>
       </div>
 
       {/* Notice / Alert Banner */}
       {noticeMessage && (
-        <div class="p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/60 text-blue-200 text-xs flex items-center justify-between gap-3">
+        <div class="p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/60 text-blue-200 text-xs flex items-center justify-between gap-3 shadow-sm">
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -84,28 +121,166 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
         </div>
       </div>
 
-      {/* Event Cards Grid / List */}
-      <div class="space-y-4">
-        {events.length === 0 ? (
-          <div class="p-12 text-center bg-neutral-900 border border-neutral-800 rounded-2xl">
-            <div class="w-12 h-12 rounded-2xl bg-neutral-800 text-neutral-500 flex items-center justify-center mx-auto mb-3">
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 class="text-sm font-semibold text-white">No tienes eventos creados aún</h3>
-            <p class="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-              Crea tu primer evento presencial para generar el enlace de asistencia y código QR.
-            </p>
-            <a
-              href="/admin/events/new"
-              class="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
-            >
-              + Crear Evento
-            </a>
+      {/* Main Content: Cards or Table */}
+      {events.length === 0 ? (
+        <div class="p-12 text-center bg-neutral-900 border border-neutral-800 rounded-2xl">
+          <div class="w-12 h-12 rounded-2xl bg-neutral-800 text-neutral-500 flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
-        ) : (
-          events.map((event) => {
+          <h3 class="text-sm font-semibold text-white">No tienes eventos creados aún</h3>
+          <p class="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
+            Crea tu primer evento presencial para generar el enlace de asistencia y código QR.
+          </p>
+          <a
+            href="/admin/events/new"
+            class="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+          >
+            + Crear Evento
+          </a>
+        </div>
+      ) : currentView === "table" ? (
+        /* TABLE VIEW */
+        <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-neutral-300">
+              <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
+                <tr>
+                  <th scope="col" class="py-3.5 px-4">Estado</th>
+                  <th scope="col" class="py-3.5 px-4">Título del Evento</th>
+                  <th scope="col" class="py-3.5 px-4">Sede / Ubicación</th>
+                  <th scope="col" class="py-3.5 px-4">Radio</th>
+                  <th scope="col" class="py-3.5 px-4">Horario</th>
+                  <th scope="col" class="py-3.5 px-4 text-center">Asistentes</th>
+                  <th scope="col" class="py-3.5 px-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-800/70">
+                {events.map((event) => {
+                  const isOpen = event.status === "OPEN";
+                  const schedule =
+                    event.starts_at && event.ends_at
+                      ? `${event.starts_at} - ${event.ends_at}`
+                      : event.starts_at || event.ends_at || "—";
+
+                  return (
+                    <tr class="hover:bg-neutral-800/40 transition-colors">
+                      <td class="py-3.5 px-4 whitespace-nowrap">
+                        {isOpen ? (
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Abierto
+                          </span>
+                        ) : (
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700/50">
+                            <span class="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                            Cerrado
+                          </span>
+                        )}
+                      </td>
+
+                      <td class="py-3.5 px-4 font-medium text-white max-w-xs">
+                        <div class="truncate font-semibold">{event.title}</div>
+                        <div class="font-mono text-[10px] text-neutral-500">{event.public_code}</div>
+                      </td>
+
+                      <td class="py-3.5 px-4 text-neutral-300 max-w-[180px] truncate">
+                        {event.location_name || "—"}
+                      </td>
+
+                      <td class="py-3.5 px-4 font-mono text-neutral-300 whitespace-nowrap">
+                        {event.radius_meters}m
+                      </td>
+
+                      <td class="py-3.5 px-4 text-neutral-400 whitespace-nowrap">
+                        {schedule}
+                      </td>
+
+                      <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span class={`font-mono font-bold text-sm ${event.attendee_count > 0 ? "text-blue-400" : "text-neutral-500"}`}>
+                          {event.attendee_count}
+                        </span>
+                      </td>
+
+                      <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1.5">
+                          {/* Detalle */}
+                          <a
+                            href={`/admin/events/${event.id}`}
+                            title="Ver detalles y asistentes"
+                            class="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                          >
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </a>
+
+                          {/* Editar */}
+                          <a
+                            href={`/admin/events/${event.id}/edit`}
+                            title="Editar evento"
+                            class="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+                          >
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </a>
+
+                          {/* Toggle */}
+                          <form action={`/admin/events/${event.id}/toggle`} method="post" class="inline">
+                            <button
+                              type="submit"
+                              title={isOpen ? "Cerrar asistencia" : "Abrir asistencia"}
+                              class={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                isOpen
+                                  ? "bg-amber-950/40 text-amber-400 hover:bg-amber-900/60"
+                                  : "bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/60"
+                              }`}
+                            >
+                              {isOpen ? (
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              ) : (
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              )}
+                            </button>
+                          </form>
+
+                          {/* Eliminar */}
+                          <form
+                            action={`/admin/events/${event.id}/delete`}
+                            method="post"
+                            class="inline"
+                            onsubmit="return confirm('¿Seguro que deseas eliminar este evento y todos sus registros de asistencia? Esta acción no se puede deshacer.');"
+                          >
+                            <button
+                              type="submit"
+                              title="Eliminar evento"
+                              class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 transition-colors cursor-pointer"
+                            >
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* CARDS VIEW */
+        <div class="space-y-4">
+          {events.map((event) => {
             const isOpen = event.status === "OPEN";
             const schedule =
               event.starts_at && event.ends_at
@@ -132,9 +307,11 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
                       <span class="font-mono text-xs text-neutral-500">{event.public_code}</span>
                     </div>
 
-                    <h2 class="text-lg font-bold text-white tracking-tight leading-snug">
-                      {event.title}
-                    </h2>
+                    <a href={`/admin/events/${event.id}`} class="block group">
+                      <h2 class="text-lg font-bold text-white tracking-tight leading-snug group-hover:text-blue-400 transition-colors">
+                        {event.title}
+                      </h2>
+                    </a>
 
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-400 font-medium">
                       <span class="flex items-center gap-1.5 text-neutral-300">
@@ -195,9 +372,33 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
                     </button>
                   </div>
 
-                  {/* Botones de Control del Evento */}
+                  {/* Botones de Control del Evento (CRUD) */}
                   <div class="flex items-center gap-2">
-                    <form action={`/admin/events/${event.id}/toggle`} method="post">
+                    {/* Ver Detalle */}
+                    <a
+                      href={`/admin/events/${event.id}`}
+                      class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-neutral-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span>Ver Asistentes</span>
+                    </a>
+
+                    {/* Editar */}
+                    <a
+                      href={`/admin/events/${event.id}/edit`}
+                      class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-neutral-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span>Editar</span>
+                    </a>
+
+                    {/* Toggle */}
+                    <form action={`/admin/events/${event.id}/toggle`} method="post" class="inline">
                       {isOpen ? (
                         <button
                           type="submit"
@@ -206,7 +407,7 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
                           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span>Cerrar Asistencia</span>
+                          <span>Cerrar</span>
                         </button>
                       ) : (
                         <button
@@ -216,17 +417,35 @@ export function DashboardView({ events, noticeMessage }: DashboardViewProps) {
                           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span>Abrir Asistencia</span>
+                          <span>Abrir</span>
                         </button>
                       )}
+                    </form>
+
+                    {/* Eliminar */}
+                    <form
+                      action={`/admin/events/${event.id}/delete`}
+                      method="post"
+                      class="inline"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar este evento y todos sus registros de asistencia? Esta acción no se puede deshacer.');"
+                    >
+                      <button
+                        type="submit"
+                        class="p-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-400 text-xs font-semibold transition-all cursor-pointer flex items-center"
+                        title="Eliminar evento"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </form>
                   </div>
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       <script
         dangerouslySetInnerHTML={{

@@ -1,4 +1,4 @@
-import { getDatabase, type Event } from "../db";
+import { getDatabase, type Event, type Attendance } from "../db";
 import {
   EventNotFoundError,
   ValidationError,
@@ -19,6 +19,17 @@ export interface CreateEventInput {
   starts_at?: string | null;
   ends_at?: string | null;
   created_by_user_id?: number | null;
+}
+
+export interface UpdateEventInput {
+  title: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  status?: "OPEN" | "CLOSED" | "DRAFT";
 }
 
 export class EventService {
@@ -58,6 +69,36 @@ export class EventService {
     return db
       .prepare("SELECT * FROM events WHERE id = $id")
       .get({ $id: id }) as Event | null;
+  }
+
+  /**
+   * Get an event with its full list of registered attendances
+   */
+  public static getWithAttendances(id: number): { event: EventWithStats; attendances: Attendance[] } {
+    const db = getDatabase();
+    const event = db
+      .prepare(`
+        SELECT 
+          e.*,
+          (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id) as attendee_count
+        FROM events e
+        WHERE e.id = $id
+      `)
+      .get({ $id: id }) as EventWithStats | null;
+
+    if (!event) {
+      throw new EventNotFoundError(id);
+    }
+
+    const attendances = db
+      .prepare(`
+        SELECT * FROM attendances 
+        WHERE event_id = $id 
+        ORDER BY id DESC
+      `)
+      .all({ $id: id }) as Attendance[];
+
+    return { event, attendances };
   }
 
   /**
@@ -157,6 +198,90 @@ export class EventService {
       throw new Error("No se pudo recuperar el evento recién creado.");
     }
     return created;
+  }
+
+  /**
+   * Update an existing event
+   */
+  public static update(id: number, input: UpdateEventInput): Event {
+    const existing = this.getById(id);
+    if (!existing) {
+      throw new EventNotFoundError(id);
+    }
+
+    const title = input.title.trim();
+    const locationName = input.location_name.trim();
+
+    if (!title) {
+      throw new ValidationError("Por favor ingresa el título del evento.");
+    }
+
+    if (!locationName) {
+      throw new ValidationError("Por favor ingresa el nombre de la sede o lugar.");
+    }
+
+    if (
+      isNaN(input.latitude) ||
+      input.latitude < -90 ||
+      input.latitude > 90 ||
+      isNaN(input.longitude) ||
+      input.longitude < -180 ||
+      input.longitude > 180
+    ) {
+      throw new InvalidCoordinatesError();
+    }
+
+    if (input.radius_meters < 10 || input.radius_meters > 5000) {
+      throw new InvalidRadiusError();
+    }
+
+    const db = getDatabase();
+    db.prepare(`
+      UPDATE events
+      SET 
+        title = $title,
+        location_name = $location_name,
+        latitude = $latitude,
+        longitude = $longitude,
+        radius_meters = $radius_meters,
+        starts_at = $starts_at,
+        ends_at = $ends_at,
+        status = COALESCE($status, status)
+      WHERE id = $id
+    `).run({
+      $title: title,
+      $location_name: locationName,
+      $latitude: input.latitude,
+      $longitude: input.longitude,
+      $radius_meters: input.radius_meters,
+      $starts_at: input.starts_at || null,
+      $ends_at: input.ends_at || null,
+      $status: input.status || null,
+      $id: id,
+    });
+
+    return this.getById(id)!;
+  }
+
+  /**
+   * Delete an event and all its attendances inside an atomic transaction
+   */
+  public static delete(id: number): boolean {
+    const existing = this.getById(id);
+    if (!existing) {
+      throw new EventNotFoundError(id);
+    }
+
+    const db = getDatabase();
+    const deleteTx = db.transaction(() => {
+      // 1. Delete associated attendances
+      db.prepare("DELETE FROM attendances WHERE event_id = $id").run({ $id: id });
+      // 2. Delete the event
+      db.prepare("DELETE FROM events WHERE id = $id").run({ $id: id });
+    });
+
+    deleteTx();
+    return true;
   }
 
   /**

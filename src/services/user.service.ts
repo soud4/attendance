@@ -1,0 +1,144 @@
+import { getDatabase, type User } from "../db";
+import { hashPassword } from "../utils/auth";
+import {
+  InvalidDniError,
+  ValidationError,
+  UserNotFoundError,
+  ConflictError,
+} from "./errors";
+
+export interface CreateUserInput {
+  identifier: string; // 8-digit DNI
+  full_name: string;
+  password: string;
+  role?: "ADMIN" | "STAFF";
+}
+
+export class UserService {
+  /**
+   * List all users ordered by creation date
+   */
+  public static getAll(): User[] {
+    const db = getDatabase();
+    return db
+      .prepare("SELECT id, identifier, full_name, role, status, created_at FROM users ORDER BY id DESC")
+      .all() as User[];
+  }
+
+  /**
+   * Get user by ID
+   */
+  public static getById(id: number): User | null {
+    const db = getDatabase();
+    return db
+      .prepare("SELECT id, identifier, full_name, role, status, created_at FROM users WHERE id = $id")
+      .get({ $id: id }) as User | null;
+  }
+
+  /**
+   * Get user by 8-digit DNI
+   */
+  public static getByIdentifier(identifier: string): User | null {
+    const db = getDatabase();
+    return db
+      .prepare("SELECT id, identifier, full_name, role, status, created_at FROM users WHERE identifier = $identifier")
+      .get({ $identifier: identifier }) as User | null;
+  }
+
+  /**
+   * Create a new user (coordinator STAFF or ADMIN)
+   */
+  public static async create(input: CreateUserInput): Promise<User> {
+    const dni = String(input.identifier || "").trim();
+    const fullName = String(input.full_name || "").trim();
+    const password = String(input.password || "");
+    const role = input.role || "STAFF";
+
+    if (!/^\d{8}$/.test(dni)) {
+      throw new InvalidDniError("El DNI debe tener exactamente 8 dígitos numéricos.");
+    }
+
+    if (!fullName || fullName.length < 3) {
+      throw new ValidationError("Por favor ingresa el nombre completo del usuario (mínimo 3 caracteres).");
+    }
+
+    if (!password || password.length < 6) {
+      throw new ValidationError("La contraseña inicial debe tener al menos 6 caracteres.");
+    }
+
+    const existing = this.getByIdentifier(dni);
+    if (existing) {
+      throw new ConflictError(`Ya existe un usuario registrado con el DNI ${dni}.`);
+    }
+
+    const passwordHash = await hashPassword(password);
+    const db = getDatabase();
+    const now = new Date().toISOString();
+
+    const result = db.prepare(`
+      INSERT INTO users (
+        identifier,
+        password_hash,
+        full_name,
+        role,
+        status,
+        created_at
+      ) VALUES (
+        $identifier,
+        $password_hash,
+        $full_name,
+        $role,
+        'ACTIVE',
+        $created_at
+      )
+    `).run({
+      $identifier: dni,
+      $password_hash: passwordHash,
+      $full_name: fullName,
+      $role: role,
+      $created_at: now,
+    });
+
+    return this.getById(Number(result.lastInsertRowid))!;
+  }
+
+  /**
+   * Toggle user active status (ACTIVE <-> INACTIVE)
+   */
+  public static toggleStatus(id: number): { user: User; newStatus: "ACTIVE" | "INACTIVE" } {
+    const user = this.getById(id);
+    if (!user) {
+      throw new UserNotFoundError(String(id));
+    }
+
+    const newStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const db = getDatabase();
+
+    db.prepare("UPDATE users SET status = $status WHERE id = $id").run({
+      $status: newStatus,
+      $id: id,
+    });
+
+    const updated = this.getById(id)!;
+    return { user: updated, newStatus };
+  }
+
+  /**
+   * Delete a user
+   */
+  public static delete(id: number): boolean {
+    const user = this.getById(id);
+    if (!user) {
+      throw new UserNotFoundError(String(id));
+    }
+
+    // Protect initial admin 00000000 from accidental deletion
+    if (user.identifier === "00000000") {
+      throw new ValidationError("No se puede eliminar la cuenta del Administrador Principal.");
+    }
+
+    const db = getDatabase();
+    db.prepare("DELETE FROM users WHERE id = $id").run({ $id: id });
+    return true;
+  }
+}

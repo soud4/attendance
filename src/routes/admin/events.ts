@@ -17,10 +17,22 @@ adminEventsRoute.use("*", authMiddleware);
 adminEventsRoute.get("/", EventsController.index);
 
 // 2. New Event Form View
-adminEventsRoute.get("/events/new", EventsController.renderCreate);
+adminEventsRoute.get("/events/new", requireAdmin, EventsController.renderCreate);
 
 // 3. Create Event Handler (Admin only)
 adminEventsRoute.post("/events", requireAdmin, EventsController.create);
 
-// 4. Toggle Event Status (Admin only)
+// 4. View Event Details & Attendee List
+adminEventsRoute.get("/events/:id", EventsController.show);
+
+// 5. Edit Event Form View (Admin only)
+adminEventsRoute.get("/events/:id/edit", requireAdmin, EventsController.renderEdit);
+
+// 6. Update Event Handler (Admin only)
+adminEventsRoute.post("/events/:id/edit", requireAdmin, EventsController.update);
+
+// 7. Delete Event Handler (Admin only)
+adminEventsRoute.post("/events/:id/delete", requireAdmin, EventsController.delete);
+
+// 8. Toggle Event Status (Admin only)
 adminEventsRoute.post("/events/:id/toggle", requireAdmin, EventsController.toggle);

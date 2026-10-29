@@ -28,6 +28,11 @@ export interface AttendanceResult {
   recordedAt: string;
 }
 
+export interface AttendanceWithEvent extends Attendance {
+  event_title: string;
+  event_public_code: string;
+}
+
 export class AttendanceService {
   /**
    * Calculate distance between two coordinates in meters using the Haversine formula
@@ -178,5 +183,32 @@ export class AttendanceService {
     return db
       .prepare("SELECT * FROM attendances WHERE event_id = $event_id ORDER BY id DESC")
       .all({ $event_id: eventId }) as Attendance[];
+  }
+
+  /**
+   * Get all attendances globally across all events with event title and code
+   */
+  public static getAllWithEventInfo(): AttendanceWithEvent[] {
+    const db = getDatabase();
+    return db
+      .prepare(`
+        SELECT 
+          a.*,
+          e.title as event_title,
+          e.public_code as event_public_code
+        FROM attendances a
+        JOIN events e ON a.event_id = e.id
+        ORDER BY a.id DESC
+      `)
+      .all() as AttendanceWithEvent[];
+  }
+
+  /**
+   * Delete an attendance record by ID
+   */
+  public static delete(id: number): boolean {
+    const db = getDatabase();
+    db.prepare("DELETE FROM attendances WHERE id = $id").run({ $id: id });
+    return true;
   }
 }

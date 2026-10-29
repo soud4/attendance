@@ -9,6 +9,8 @@ import { seedAdminUser, seedDemoEvent } from "./db/seed";
 import { asistenciaRoute } from "./routes/asistencia";
 import { authRoute } from "./routes/admin/auth";
 import { adminEventsRoute } from "./routes/admin/events";
+import { adminUsersRoute } from "./routes/admin/users";
+import { adminAttendancesRoute } from "./routes/admin/attendances";
 import {
   notFoundResponse,
   forbiddenResponse,
@@ -55,6 +57,8 @@ export function createApp(): Hono {
   app.route("/", asistenciaRoute);
   app.route("/", authRoute);
   app.route("/admin", adminEventsRoute);
+  app.route("/admin", adminUsersRoute);
+  app.route("/admin", adminAttendancesRoute);
 
   // Root Health & Info
   app.get("/", (c) => {
