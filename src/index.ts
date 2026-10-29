@@ -11,6 +11,7 @@ import { authRoute } from "./routes/admin/auth";
 import { adminEventsRoute } from "./routes/admin/events";
 import { adminUsersRoute } from "./routes/admin/users";
 import { adminAttendancesRoute } from "./routes/admin/attendances";
+import { geoRoute } from "./routes/api/geo";
 import {
   notFoundResponse,
   forbiddenResponse,
@@ -59,6 +60,7 @@ export function createApp(): Hono {
   app.route("/admin", adminEventsRoute);
   app.route("/admin", adminUsersRoute);
   app.route("/admin", adminAttendancesRoute);
+  app.route("/api/geo", geoRoute);
 
   // Root Health & Info
   app.get("/", (c) => {

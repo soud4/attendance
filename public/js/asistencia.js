@@ -141,8 +141,8 @@
         var r = await fetch("/asistir/" + encodeURIComponent(code) + "/status", { cache: "no-store" });
         var d = await r.json();
         if (r.ok && d.success && !d.is_open) {
-          badgeOff();
-          endedView();
+          badgeOff(d.is_expired);
+          endedView(d.is_expired);
         }
       } catch (_) {}
       setTimeout(function() {
@@ -151,19 +151,27 @@
     });
   }
 
-  function badgeOff() {
+  function badgeOff(isExpired) {
     if (!eventStatusBadge) return;
-    eventStatusBadge.className = "inline-flex items-center gap-1.5 text-[12px] font-semibold text-neutral-500";
-    eventStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-neutral-600 inline-block"></span>Finalizado';
+    if (isExpired) {
+      eventStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/50";
+      eventStatusBadge.innerHTML = '<svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Finalizado automáticamente por horario';
+    } else {
+      eventStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700/60";
+      eventStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-neutral-600 inline-block"></span>Finalizado';
+    }
   }
 
-  function endedView() {
+  function endedView(isExpired) {
     if (!interactiveContent) return;
+    var msg = isExpired
+      ? "El evento ha concluido y el registro se cerró automáticamente por horario."
+      : "La asistencia fue cerrada por el coordinador o se superó la hora límite.";
     interactiveContent.innerHTML =
       '<div class="text-center py-6">' +
       '<svg class="w-10 h-10 text-neutral-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
       '<p class="text-lg font-bold text-neutral-300">El registro ha finalizado</p>' +
-      '<p class="mt-1.5 text-[14px] text-neutral-500">La asistencia fue cerrada por el coordinador o se supero la hora limite.</p></div>';
+      '<p class="mt-1.5 text-[14px] text-neutral-500">' + msg + '</p></div>';
   }
 
   // 5. Input DNI
@@ -255,8 +263,9 @@
         submitBtn.style.display = "none";
       } else {
         if (d.title === "El registro ha finalizado") {
-          badgeOff();
-          endedView();
+          var isAuto = (d.error || "").indexOf("automáticamente") !== -1;
+          badgeOff(isAuto);
+          endedView(isAuto);
         } else {
           notice("error", d.title || "No se pudo registrar", d.error || "Error inesperado.");
           busy(false);

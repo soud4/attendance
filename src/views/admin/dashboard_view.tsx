@@ -54,16 +54,18 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             </a>
           </div>
 
-          {/* New Event Button */}
-          <a
-            href="/admin/events/new"
+          {/* New Event Buttons */}
+          <button
+            type="button"
+            id="openQuickCreateModalBtn"
+            onclick="openQuickCreateModal()"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>Nuevo Evento</span>
-          </a>
+            <span>Nuevo Evento (Mapa)</span>
+          </button>
         </div>
       </div>
 
@@ -450,6 +452,128 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
       <script
         dangerouslySetInnerHTML={{
           __html: `
+          let modalMapInstance = null;
+          let modalMarker = null;
+          let modalCircle = null;
+
+          function openQuickCreateModal() {
+            const modal = document.getElementById("quickCreateModal");
+            if (!modal) return;
+            modal.classList.remove("hidden");
+
+            if (typeof L !== "undefined" && !modalMapInstance) {
+              const latInput = document.getElementById("modal_latitude");
+              const lonInput = document.getElementById("modal_longitude");
+              const radiusInput = document.getElementById("modal_radius_meters");
+              const locInput = document.getElementById("modal_location_name");
+              const statusEl = document.getElementById("modalOsmStatus");
+              const gmapsBtn = document.getElementById("modalGmapsBtn");
+
+              const lat = parseFloat(latInput.value) || -12.046374;
+              const lon = parseFloat(lonInput.value) || -77.042793;
+              const radius = parseInt(radiusInput.value, 10) || 100;
+
+              modalMapInstance = L.map("modalEventMap").setView([lat, lon], 16);
+              L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19,
+              }).addTo(modalMapInstance);
+
+              modalMarker = L.marker([lat, lon], { draggable: true }).addTo(modalMapInstance);
+              modalCircle = L.circle([lat, lon], {
+                radius: radius,
+                color: "#3b82f6",
+                fillColor: "#3b82f6",
+                fillOpacity: 0.2,
+                weight: 2,
+              }).addTo(modalMapInstance);
+
+              function updateModalCoords(lt, ln, queryOsm) {
+                latInput.value = Number(lt).toFixed(6);
+                lonInput.value = Number(ln).toFixed(6);
+                modalMarker.setLatLng([lt, ln]);
+                modalCircle.setLatLng([lt, ln]);
+                if (gmapsBtn) gmapsBtn.href = "https://www.google.com/maps?q=" + lt + "," + ln;
+                if (queryOsm) {
+                  if (statusEl) statusEl.textContent = "Consultando OSM...";
+                  fetch("/api/geo/reverse?lat=" + lt + "&lon=" + ln)
+                    .then(r => r.json())
+                    .then(d => {
+                      if (d.success && d.name) {
+                        locInput.value = d.name;
+                        if (statusEl) {
+                          statusEl.textContent = "✓ Sede sugerida: " + d.name;
+                          setTimeout(() => { statusEl.textContent = ""; }, 3000);
+                        }
+                      }
+                    }).catch(() => { if (statusEl) statusEl.textContent = ""; });
+                }
+              }
+
+              modalMarker.on("dragend", function(e) {
+                const p = e.target.getLatLng();
+                updateModalCoords(p.lat, p.lng, true);
+              });
+
+              modalMapInstance.on("click", function(e) {
+                updateModalCoords(e.latlng.lat, e.latlng.lng, true);
+              });
+
+              radiusInput.addEventListener("input", function() {
+                if (modalCircle) modalCircle.setRadius(parseInt(radiusInput.value, 10) || 100);
+              });
+
+              window.setModalRadius = function(r) {
+                radiusInput.value = r;
+                if (modalCircle) modalCircle.setRadius(r);
+              };
+
+              const osmBtn = document.getElementById("modalQueryOsmBtn");
+              if (osmBtn) {
+                osmBtn.addEventListener("click", () => {
+                  updateModalCoords(parseFloat(latInput.value), parseFloat(lonInput.value), true);
+                });
+              }
+
+              const geoBtn = document.getElementById("modalGeoBtn");
+              if (geoBtn) {
+                geoBtn.addEventListener("click", () => {
+                  if (!navigator.geolocation) return alert("Geolocalización no soportada");
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    modalMapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17);
+                    updateModalCoords(pos.coords.latitude, pos.coords.longitude, true);
+                  });
+                });
+              }
+
+              const mForm = document.getElementById("modalCreateEventForm");
+              if (mForm) {
+                mForm.addEventListener("submit", function() {
+                  const d = document.getElementById("modal_event_date").value;
+                  const st = document.getElementById("modal_start_time").value;
+                  const et = document.getElementById("modal_end_time").value;
+                  const startsAtEl = document.getElementById("modal_starts_at");
+                  const endsAtEl = document.getElementById("modal_ends_at");
+                  if (d && st && startsAtEl) startsAtEl.value = d + "T" + st;
+                  if (d && et && endsAtEl) endsAtEl.value = d + "T" + et;
+                });
+              }
+            }
+
+            setTimeout(() => {
+              if (modalMapInstance) modalMapInstance.invalidateSize();
+            }, 200);
+          }
+
+          function closeQuickCreateModal() {
+            const modal = document.getElementById("quickCreateModal");
+            if (modal) modal.classList.add("hidden");
+          }
+
+          document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") closeQuickCreateModal();
+          });
+
           function copyLink(path, btn) {
             const fullUrl = window.location.origin + path;
             navigator.clipboard.writeText(fullUrl).then(() => {
@@ -465,6 +589,206 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         `,
         }}
       />
-    </div>
+    
+      {/* Quick Creation Modal with Interactive Leaflet Map */}
+      <div
+        id="quickCreateModal"
+        class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center"
+      >
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 relative max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between pb-4 border-b border-neutral-800 mb-5">
+            <div>
+              <h2 class="text-lg font-bold text-white tracking-tight">Creación Rápida de Evento</h2>
+              <p class="text-xs text-neutral-400 mt-0.5">Selecciona el punto en el mapa y configura los detalles</p>
+            </div>
+            <button
+              type="button"
+              onclick="closeQuickCreateModal()"
+              class="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all cursor-pointer"
+            >
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form id="modalCreateEventForm" action="/admin/events" method="post" class="space-y-4">
+            <div>
+              <label for="modal_title" class="block text-xs font-semibold text-neutral-300 mb-1">
+                Título del Evento <span class="text-blue-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="modal_title"
+                name="title"
+                required
+                placeholder="Ej: Asamblea Extraordinaria 2026"
+                class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs sm:text-sm py-2.5 px-3 focus:border-blue-500/80 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="modal_location_name" class="block text-xs font-semibold text-neutral-300">
+                  Nombre de la Sede o Lugar <span class="text-blue-400">*</span>
+                </label>
+                <button
+                  type="button"
+                  id="modalQueryOsmBtn"
+                  class="text-[11px] text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                >
+                  Consultar OSM
+                </button>
+              </div>
+              <input
+                type="text"
+                id="modal_location_name"
+                name="location_name"
+                required
+                placeholder="Ej: Auditorio Central - Sede Lima"
+                class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs sm:text-sm py-2.5 px-3 focus:border-blue-500/80 focus:outline-none"
+              />
+              <div id="modalOsmStatus" class="mt-1 text-[11px] text-emerald-400 font-medium min-h-[14px]"></div>
+            </div>
+
+            {/* Map & Controls */}
+            <div class="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-neutral-200">Ubicación y Cobertura (OpenStreetMap)</span>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    id="modalGeoBtn"
+                    class="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium cursor-pointer"
+                  >
+                    Mi ubicación
+                  </button>
+                  <a
+                    id="modalGmapsBtn"
+                    href="https://www.google.com/maps?q=-12.046374,-77.042793"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium"
+                  >
+                    Google Maps
+                  </a>
+                </div>
+              </div>
+
+              <div id="modalEventMap" class="w-full h-56 rounded-xl overflow-hidden border border-neutral-700/80 relative z-0"></div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label for="modal_latitude" class="block text-[10px] text-neutral-400 mb-0.5">Latitud</label>
+                  <input
+                    type="number"
+                    step="any"
+                    id="modal_latitude"
+                    name="latitude"
+                    required
+                    value="-12.046374"
+                    class="w-full bg-neutral-800 border border-neutral-700 rounded-lg text-white font-mono p-1.5 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label for="modal_longitude" class="block text-[10px] text-neutral-400 mb-0.5">Longitud</label>
+                  <input
+                    type="number"
+                    step="any"
+                    id="modal_longitude"
+                    name="longitude"
+                    required
+                    value="-77.042793"
+                    class="w-full bg-neutral-800 border border-neutral-700 rounded-lg text-white font-mono p-1.5 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Radius */}
+            <div>
+              <label for="modal_radius_meters" class="block text-xs font-semibold text-neutral-300 mb-1">
+                Radio de Cobertura (metros)
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  type="number"
+                  id="modal_radius_meters"
+                  name="radius_meters"
+                  min={10}
+                  max={5000}
+                  value={100}
+                  class="w-28 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs sm:text-sm py-2 px-3 focus:outline-none"
+                />
+                <button type="button" onclick="setModalRadius(50)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">50m</button>
+                <button type="button" onclick="setModalRadius(100)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">100m</button>
+                <button type="button" onclick="setModalRadius(200)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">200m</button>
+                <button type="button" onclick="setModalRadius(500)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">500m</button>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              <div>
+                <label for="modal_event_date" class="block text-[11px] font-semibold text-neutral-400 mb-1">Fecha</label>
+                <input
+                  type="date"
+                  id="modal_event_date"
+                  name="event_date"
+                  required
+                  value={new Date().toISOString().split("T")[0]}
+                  class="w-full bg-neutral-800 border border-neutral-700 rounded-xl text-white text-xs py-2 px-2.5 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label for="modal_start_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">Apertura</label>
+                <input
+                  type="time"
+                  id="modal_start_time"
+                  name="start_time"
+                  value="08:30"
+                  class="w-full bg-neutral-800 border border-neutral-700 rounded-xl text-white text-xs py-2 px-2.5 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label for="modal_end_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">Cierre Automático</label>
+                <input
+                  type="time"
+                  id="modal_end_time"
+                  name="end_time"
+                  required
+                  value="18:00"
+                  class="w-full bg-neutral-800 border border-neutral-700 rounded-xl text-white text-xs py-2 px-2.5 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <input type="hidden" id="modal_starts_at" name="starts_at" />
+            <input type="hidden" id="modal_ends_at" name="ends_at" />
+
+            <div class="pt-3 border-t border-neutral-800 flex items-center justify-between">
+              <a href="/admin/events/new" class="text-xs text-blue-400 hover:underline">
+                Abrir formulario completo
+              </a>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onclick="closeQuickCreateModal()"
+                  class="px-3.5 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-semibold hover:bg-neutral-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  Crear Evento
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+</div>
   );
 }

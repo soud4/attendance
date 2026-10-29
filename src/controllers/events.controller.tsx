@@ -50,8 +50,23 @@ export class EventsController {
     const latStr = String(body.latitude || "").trim();
     const lonStr = String(body.longitude || "").trim();
     const radiusMeters = Number(body.radius_meters) || 100;
-    const startsAt = String(body.starts_at || "").trim();
-    const endsAt = String(body.ends_at || "").trim();
+    let startsAt = String(body.starts_at || "").trim();
+    let endsAt = String(body.ends_at || "").trim();
+    const eventDate = String(body.event_date || "").trim();
+    const startTime = String(body.start_time || "").trim();
+    const endTime = String(body.end_time || "").trim();
+
+    if (!startsAt && eventDate && startTime) {
+      startsAt = `${eventDate}T${startTime}`;
+    } else if (!startsAt && (startTime || eventDate)) {
+      startsAt = startTime || eventDate;
+    }
+
+    if (!endsAt && eventDate && endTime) {
+      endsAt = `${eventDate}T${endTime}`;
+    } else if (!endsAt && (endTime || eventDate)) {
+      endsAt = endTime || eventDate;
+    }
 
     try {
       const createdEvent = EventService.create({
@@ -131,8 +146,23 @@ export class EventsController {
     const latStr = String(body.latitude || "").trim();
     const lonStr = String(body.longitude || "").trim();
     const radiusMeters = Number(body.radius_meters) || 100;
-    const startsAt = String(body.starts_at || "").trim();
-    const endsAt = String(body.ends_at || "").trim();
+    let startsAt = String(body.starts_at || "").trim();
+    let endsAt = String(body.ends_at || "").trim();
+    const eventDate = String(body.event_date || "").trim();
+    const startTime = String(body.start_time || "").trim();
+    const endTime = String(body.end_time || "").trim();
+
+    if (!startsAt && eventDate && startTime) {
+      startsAt = `${eventDate}T${startTime}`;
+    } else if (!startsAt && (startTime || eventDate)) {
+      startsAt = startTime || eventDate;
+    }
+
+    if (!endsAt && eventDate && endTime) {
+      endsAt = `${eventDate}T${endTime}`;
+    } else if (!endsAt && (endTime || eventDate)) {
+      endsAt = endTime || eventDate;
+    }
     const status = String(body.status || "OPEN") as "OPEN" | "CLOSED";
 
     try {

@@ -1,4 +1,5 @@
 import { getDatabase, type Attendance, type Event } from "../db";
+import { EventService, isEventExpired, checkAutoClose } from "./event.service";
 import {
   InvalidDniError,
   InvalidCoordinatesError,
@@ -89,16 +90,19 @@ export class AttendanceService {
 
     const db = getDatabase();
 
-    // 3. Find event
-    const event = db
-      .prepare("SELECT * FROM events WHERE public_code = $code")
-      .get({ $code: input.eventPublicCode }) as Event | null;
+    // 3. Find event (getByPublicCode also executes auto-close check)
+    let event = EventService.getByPublicCode(input.eventPublicCode);
 
     if (!event) {
       throw new EventNotFoundError(input.eventPublicCode);
     }
 
-    // 4. Validate event status is OPEN
+    // 4. Validate event expiration and OPEN status
+    if (isEventExpired(event)) {
+      checkAutoClose(event);
+      throw new EventClosedError("El evento ha concluido y el registro se ha cerrado automáticamente.");
+    }
+
     if (event.status !== "OPEN") {
       throw new EventClosedError("El registro para este evento ha finalizado o se encuentra cerrado.");
     }
