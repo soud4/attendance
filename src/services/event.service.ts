@@ -32,7 +32,105 @@ export interface UpdateEventInput {
   status?: "OPEN" | "CLOSED" | "DRAFT";
 }
 
+/**
+ * Check if an event's schedule has expired based on its ends_at setting and current time
+ */
+export function isEventExpired(event: Event): boolean {
+  if (!event.ends_at || !event.ends_at.trim()) {
+    return false;
+  }
+
+  const rawEnd = event.ends_at.trim();
+
+  // 1. Full date/datetime with 4-digit year (e.g. "2026-10-29T18:00", "2026-10-29 18:00:00")
+  if (/\d{4}/.test(rawEnd)) {
+    const parsed = new Date(rawEnd);
+    if (!isNaN(parsed.getTime())) {
+      return Date.now() > parsed.getTime();
+    }
+  }
+
+  // 2. Simple time format (e.g. "18:00", "18:00:00", "06:00 PM", "6:30 pm")
+  const timeMatch = rawEnd.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (timeMatch) {
+    let hours = parseInt(timeMatch[1]!, 10);
+    const minutes = parseInt(timeMatch[2]!, 10);
+    const seconds = timeMatch[3] ? parseInt(timeMatch[3]!, 10) : 0;
+    const meridian = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
+
+    if (meridian === "PM" && hours < 12) hours += 12;
+    if (meridian === "AM" && hours === 12) hours = 0;
+
+    // Base date from starts_at if it contains a year, otherwise created_at, otherwise current date
+    let baseYear: number;
+    let baseMonth: number;
+    let baseDay: number;
+
+    const dateCandidate =
+      (event.starts_at && /\d{4}/.test(event.starts_at) ? event.starts_at : null) ||
+      (event.created_at && /\d{4}/.test(event.created_at) ? event.created_at : null);
+
+    if (dateCandidate) {
+      const matchDate = dateCandidate.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (matchDate) {
+        baseYear = parseInt(matchDate[1]!, 10);
+        baseMonth = parseInt(matchDate[2]!, 10) - 1;
+        baseDay = parseInt(matchDate[3]!, 10);
+      } else {
+        const d = new Date(dateCandidate);
+        baseYear = d.getFullYear();
+        baseMonth = d.getMonth();
+        baseDay = d.getDate();
+      }
+    } else {
+      const now = new Date();
+      baseYear = now.getFullYear();
+      baseMonth = now.getMonth();
+      baseDay = now.getDate();
+    }
+
+    const expiryDate = new Date(baseYear, baseMonth, baseDay, hours, minutes, seconds, 0);
+    return Date.now() > expiryDate.getTime();
+  }
+
+  // 3. Fallback standard Date parsing
+  const fallbackDate = new Date(rawEnd);
+  if (!isNaN(fallbackDate.getTime())) {
+    return Date.now() > fallbackDate.getTime();
+  }
+
+  return false;
+}
+
+/**
+ * Check if an open event has expired and automatically update its status to CLOSED in DB
+ */
+export function checkAutoClose<T extends Event>(event: T): T {
+  if (event.status === "OPEN" && isEventExpired(event)) {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE events
+      SET status = 'CLOSED', closed_at = COALESCE(closed_at, $closed_at)
+      WHERE id = $id AND status = 'OPEN'
+    `).run({
+      $closed_at: now,
+      $id: event.id,
+    });
+
+    return {
+      ...event,
+      status: "CLOSED",
+      closed_at: event.closed_at || now,
+    };
+  }
+  return event;
+}
+
 export class EventService {
+  public static isEventExpired = isEventExpired;
+  public static checkAutoClose = checkAutoClose;
+
   /**
    * Helper to generate a unique public code (e.g. ev-m8x2p4)
    */
@@ -46,11 +144,11 @@ export class EventService {
   }
 
   /**
-   * List all events ordered by newest first with attendee counts
+   * List all events ordered by newest first with attendee counts and auto-close check
    */
   public static getAllWithStats(): EventWithStats[] {
     const db = getDatabase();
-    return db
+    const events = db
       .prepare(`
         SELECT 
           e.*,
@@ -59,24 +157,32 @@ export class EventService {
         ORDER BY e.id DESC
       `)
       .all() as EventWithStats[];
+
+    return events.map((e) => {
+      const updated = checkAutoClose(e);
+      return { ...e, ...updated, attendee_count: e.attendee_count };
+    });
   }
 
   /**
-   * Get an event by its numeric primary key
+   * Get an event by its numeric primary key with auto-close check
    */
   public static getById(id: number): Event | null {
     const db = getDatabase();
-    return db
+    const event = db
       .prepare("SELECT * FROM events WHERE id = $id")
       .get({ $id: id }) as Event | null;
+
+    if (!event) return null;
+    return checkAutoClose(event);
   }
 
   /**
-   * Get an event with its full list of registered attendances
+   * Get an event with its full list of registered attendances and auto-close check
    */
   public static getWithAttendances(id: number): { event: EventWithStats; attendances: Attendance[] } {
     const db = getDatabase();
-    const event = db
+    let event = db
       .prepare(`
         SELECT 
           e.*,
@@ -90,6 +196,8 @@ export class EventService {
       throw new EventNotFoundError(id);
     }
 
+    event = { ...event, ...checkAutoClose(event) };
+
     const attendances = db
       .prepare(`
         SELECT * FROM attendances 
@@ -102,13 +210,16 @@ export class EventService {
   }
 
   /**
-   * Get an event by its unique public code (e.g. 'ev-demo2026')
+   * Get an event by its unique public code (e.g. 'ev-demo2026') with auto-close check
    */
   public static getByPublicCode(publicCode: string): Event | null {
     const db = getDatabase();
-    return db
+    const event = db
       .prepare("SELECT * FROM events WHERE public_code = $code")
       .get({ $code: publicCode }) as Event | null;
+
+    if (!event) return null;
+    return checkAutoClose(event);
   }
 
   /**
@@ -193,7 +304,9 @@ export class EventService {
       $created_at: now,
     });
 
-    const created = this.getByPublicCode(publicCode);
+    const created = db
+      .prepare("SELECT * FROM events WHERE public_code = $code")
+      .get({ $code: publicCode }) as Event | null;
     if (!created) {
       throw new Error("No se pudo recuperar el evento recién creado.");
     }

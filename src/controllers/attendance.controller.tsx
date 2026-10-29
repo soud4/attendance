@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { AttendanceService } from "../services/attendance.service";
-import { EventService } from "../services/event.service";
+import { EventService, isEventExpired } from "../services/event.service";
 import { AttendanceView } from "../views/asistencia";
 import { renderNotFoundView } from "../views/errors/error_view";
 import {
@@ -52,10 +52,14 @@ export class AttendanceController {
       );
     }
 
+    const expired = isEventExpired(event);
+    const isOpen = event.status === "OPEN" && !expired;
+
     return c.json({
       success: true,
       status: event.status,
-      is_open: event.status === "OPEN",
+      is_open: isOpen,
+      is_expired: expired,
       title: event.title,
       location_name: event.location_name,
       starts_at: event.starts_at,

@@ -23,6 +23,8 @@ export function AdminLayout({ title, user, activePath = "/admin", children }: Ad
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="/css/tailwind.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>{`
           body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
@@ -35,6 +37,10 @@ export function AdminLayout({ title, user, activePath = "/admin", children }: Ad
           .sidebar-scroll::-webkit-scrollbar-thumb {
             background: #262626;
             border-radius: 4px;
+          }
+          .leaflet-container {
+            font-family: inherit;
+            background: #171717;
           }
         `}</style>
       </head>

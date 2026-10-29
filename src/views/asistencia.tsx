@@ -1,16 +1,63 @@
 import type { Event } from "../db";
+import { isEventExpired } from "../services/event.service";
 
-function formatSchedule(s: string | null, e: string | null): string {
-  if (s && e) return s + " — " + e;
-  if (s) return "Inicio: " + s;
-  if (e) return "Cierre: " + e;
-  return "Horario según convocatoria";
+export function formatSpanishDate(startsAt: string | null, createdAt: string): string {
+  const candidate = (startsAt && /\d{4}/.test(startsAt) ? startsAt : null) || createdAt;
+  const match = candidate.match(/(\d{4})-(\d{2})-(\d{2})/);
+
+  const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const months = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  if (match) {
+    const year = parseInt(match[1]!, 10);
+    const month = parseInt(match[2]!, 10) - 1;
+    const day = parseInt(match[3]!, 10);
+    const d = new Date(year, month, day);
+    return `${days[d.getDay()]}, ${day} de ${months[month]} de ${year}`;
+  }
+
+  const d = new Date(candidate);
+  if (!isNaN(d.getTime())) {
+    return `${days[d.getDay()]}, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
+  }
+
+  const today = new Date();
+  return `${days[today.getDay()]}, ${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+}
+
+export function cleanTimeDisplay(val: string | null, defaultFallback: string): string {
+  if (!val || !val.trim()) return defaultFallback;
+  const raw = val.trim();
+
+  // If it's an ISO datetime like "2026-10-29T08:30" or "2026-10-29 08:30:00"
+  if (raw.includes("T") || (/\d{4}-\d{2}-\d{2}/.test(raw) && raw.includes(":"))) {
+    const timePart = raw.split(/[T ]/)[1];
+    if (timePart) {
+      const parts = timePart.split(":");
+      let h = parseInt(parts[0]!, 10);
+      const m = parts[1] || "00";
+      const ampm = h >= 12 ? "PM" : "AM";
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      return `${String(h).padStart(2, "0")}:${m} ${ampm}`;
+    }
+  }
+
+  return raw;
 }
 
 export function AttendanceView({ event }: { event: Event }) {
-  const isOpen = event.status === "OPEN";
+  const expired = isEventExpired(event);
+  const isOpen = event.status === "OPEN" && !expired;
+  const isAutoClosed = event.status === "CLOSED" && expired;
   const locationName = event.location_name || "Sede presencial";
-  const schedule = formatSchedule(event.starts_at, event.ends_at);
+
+  const readableDate = formatSpanishDate(event.starts_at, event.created_at);
+  const openingTime = cleanTimeDisplay(event.starts_at, "08:00 AM");
+  const closingTime = cleanTimeDisplay(event.ends_at, "06:00 PM");
 
   return (
     <html lang="es" class="h-full">
@@ -90,17 +137,24 @@ export function AttendanceView({ event }: { event: Event }) {
           </div>
 
           <div class="w-full bg-neutral-900 rounded-2xl border border-neutral-800/70 shadow-xl overflow-hidden">
-            {/* Info del evento con iconos */}
-            <div class="bg-neutral-800/50 px-6 py-5 border-b border-neutral-800/60 space-y-3">
+            {/* Info del evento con fecha, horarios e iconos */}
+            <div class="bg-neutral-800/50 px-6 py-5 border-b border-neutral-800/60 space-y-3.5">
               <div>
                 {isOpen ? (
-                  <span id="eventStatusBadge" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-400">
+                  <span id="eventStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                    Evento abierto
+                    Abierto para registro hasta las {closingTime}
+                  </span>
+                ) : isAutoClosed ? (
+                  <span id="eventStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/50">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Finalizado automáticamente por horario
                   </span>
                 ) : (
-                  <span id="eventStatusBadge" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-neutral-500">
-                    <span class="w-2 h-2 rounded-full bg-neutral-600 inline-block" />
+                  <span id="eventStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700/60">
+                    <span class="w-2 h-2 rounded-full bg-neutral-500 inline-block" />
                     Finalizado
                   </span>
                 )}
@@ -110,6 +164,32 @@ export function AttendanceView({ event }: { event: Event }) {
                 {event.title}
               </h2>
 
+              {/* Fecha legible en español */}
+              <div class="flex items-center gap-2.5 text-[14px] text-blue-300 font-medium">
+                <svg class="w-[18px] h-[18px] text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{readableDate}</span>
+              </div>
+
+              {/* Horas de apertura y cierre con iconos SVG */}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5 text-[13px]">
+                <div class="flex items-center gap-2 text-neutral-300">
+                  <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Apertura: <strong class="text-white font-mono">{openingTime}</strong></span>
+                </div>
+
+                <div class="flex items-center gap-2 text-neutral-300">
+                  <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                  </svg>
+                  <span>Cierre: <strong class="text-white font-mono">{closingTime}</strong></span>
+                </div>
+              </div>
+
+              {/* Lugar de la sede */}
               <div class="flex items-center gap-2.5 text-[14px] text-neutral-300">
                 <svg class="w-[18px] h-[18px] text-neutral-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -118,19 +198,13 @@ export function AttendanceView({ event }: { event: Event }) {
                 <span>{locationName}</span>
               </div>
 
+              {/* Radio de cobertura */}
               <div class="flex items-center gap-2.5 text-[13px] text-neutral-500">
                 <svg class="w-[18px] h-[18px] text-neutral-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                   <circle cx="12" cy="12" r="10" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
                 <span>Radio de cobertura: {event.radius_meters} m</span>
-              </div>
-
-              <div class="flex items-center gap-2.5 text-[14px] text-blue-400 font-medium">
-                <svg class="w-[18px] h-[18px] text-blue-500/70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{schedule}</span>
               </div>
             </div>
 
@@ -201,7 +275,11 @@ export function AttendanceView({ event }: { event: Event }) {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p class="text-lg font-bold text-neutral-300">El registro ha finalizado</p>
-                  <p class="mt-1.5 text-[14px] text-neutral-500">La asistencia fue cerrada por el coordinador o se superó la hora límite.</p>
+                  <p class="mt-1.5 text-[14px] text-neutral-500">
+                    {isAutoClosed
+                      ? `El evento concluyó y la asistencia fue cerrada automáticamente a las ${closingTime}.`
+                      : "La asistencia fue cerrada por el coordinador o se superó la hora límite."}
+                  </p>
                 </div>
               )}
               <div id="statusContainer" class="hidden" />
