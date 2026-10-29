@@ -1,0 +1,26 @@
+{
+  "name": "bandera-asistencia",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "bun check",
+    "build:css": "bunx @tailwindcss/cli -i src/styles/main.css -o public/css/tailwind.css --minify",
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "db:init": "bun run src/db/init.ts",
+    "db:seed": "bun run src/db/seed.ts"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/bun": "latest",
+    "tailwindcss": "^4.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "hono": "^4.13.14"
+  }
+}

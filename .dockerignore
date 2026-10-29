@@ -1,0 +1,14 @@
+node_modules
+*.sqlite*
+data.sqlite
+data.sqlite-wal
+data.sqlite-shm
+.git
+.gitignore
+tests
+docs
+README.md
+CLAUDE.md
+coverage
+.DS_Store
+.env*

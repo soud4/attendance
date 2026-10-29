@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bandera-asistencia
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_PATH=/app/data/data.sqlite
+      - AUTO_SEED=true
+    volumes:
+      # Persists SQLite database across container recreations & Dokploy redeployments
+      - asistencia-data:/app/data
+
+volumes:
+  asistencia-data:
+    driver: local
