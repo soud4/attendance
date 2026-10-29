@@ -1,6 +1,38 @@
 import { Database } from "bun:sqlite";
 import { getDatabase, initSchema } from "./index";
 
+export function seedAdminUser(db: Database): void {
+  const existing = db
+    .prepare("SELECT id FROM users WHERE identifier = '00000000'")
+    .get();
+
+  if (!existing) {
+    // Password 'admin123' hashed with Argon2id
+    const defaultHash = "$argon2id$v=19$m=65536,t=2,p=1$qBRIedce3uwoOxj3U8FimNkvqGevcCorPXmptrMNgMM$46OCPeMmZMl2MWw1lSAIYIM8IiqxGQEoKOOH1blRRKY";
+
+    db.run(
+      `
+      INSERT INTO users (
+        identifier,
+        password_hash,
+        full_name,
+        role,
+        status
+      ) VALUES (
+        '00000000',
+        ?,
+        'Administrador Principal',
+        'ADMIN',
+        'ACTIVE'
+      );
+    `,
+      [defaultHash]
+    );
+
+    console.log("Usuario Administrador inicial creado: DNI 00000000 / admin123");
+  }
+}
+
 export function seedDemoEvent(db: Database): void {
   // Check if demo event already exists
   const existing = db
@@ -39,5 +71,6 @@ export function seedDemoEvent(db: Database): void {
 if (import.meta.main) {
   const db = getDatabase();
   initSchema(db);
+  seedAdminUser(db);
   seedDemoEvent(db);
 }

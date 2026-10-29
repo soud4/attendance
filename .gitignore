@@ -37,3 +37,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+
+# Local SSL / TLS certificates (mkcert)
+*.pem
+certs/

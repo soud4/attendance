@@ -6,7 +6,9 @@ services:
     container_name: bandera-asistencia
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Si corres docker compose en tu VPS, se mapea al puerto 3005 del host para no chocar con el 3000.
+      # En Dokploy con dominio no necesitas abrir puertos en el host.
+      - "${HOST_PORT:-3005}:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000

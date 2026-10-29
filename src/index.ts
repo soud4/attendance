@@ -2,9 +2,12 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import { existsSync } from "node:fs";
 import { getDatabase, initSchema } from "./db";
-import { seedDemoEvent } from "./db/seed";
+import { seedAdminUser, seedDemoEvent } from "./db/seed";
 import { asistenciaRoute } from "./routes/asistencia";
+import { authRoute } from "./routes/admin/auth";
+import { adminEventsRoute } from "./routes/admin/events";
 
 // Initialize database & schema
 const db = getDatabase();
@@ -12,12 +15,13 @@ initSchema(db);
 
 // Auto-seed if database is empty or if AUTO_SEED is requested
 try {
+  seedAdminUser(db);
   const eventCount = (db.query("SELECT COUNT(*) as count FROM events").get() as { count: number })?.count || 0;
   if (eventCount === 0 || process.env.AUTO_SEED === "true") {
     seedDemoEvent(db);
   }
 } catch (e) {
-  console.warn("No se pudo auto-sembrar evento inicial:", e);
+  console.warn("No se pudo auto-sembrar datos iniciales:", e);
 }
 
 const app = new Hono();
@@ -39,6 +43,8 @@ app.use("/js/*", serveStatic({ root: "./public" }));
 
 // Mount Routes
 app.route("/", asistenciaRoute);
+app.route("/", authRoute);
+app.route("/admin", adminEventsRoute);
 
 // Root Health & Info
 app.get("/", (c) => {
@@ -59,16 +65,60 @@ app.get("/", (c) => {
     <p class="mt-2 text-xs text-slate-400 leading-relaxed">
       Para registrar asistencia a un evento específico, escanea el código QR proporcionado por el coordinador o accede mediante el enlace <code class="text-blue-300 font-mono">/asistir/[codigo]</code>.
     </p>
+    <div class="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between">
+      <span class="text-xs text-slate-400">¿Eres organizador?</span>
+      <a href="/admin" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all">
+        Acceso Panel Admin &rarr;
+      </a>
+    </div>
   </div>
 </body>
 </html>`);
 });
 
+// Helper route in local development to download root CA for mobile phones
+if (process.env.NODE_ENV !== "production") {
+  const caPath = `${process.env.HOME}/.local/share/mkcert/rootCA.pem`;
+  app.get("/ca.pem", (c) => {
+    if (existsSync(caPath)) {
+      return c.body(Bun.file(caPath).stream(), 200, {
+        "Content-Type": "application/x-x509-ca-cert",
+        "Content-Disposition": 'attachment; filename="rootCA.pem"',
+      });
+    }
+    return c.text("CA no encontrada", 404);
+  });
+}
+
 const PORT = Number(process.env.PORT) || 3000;
 
-console.log(`Servidor de Asistencia ejecutándose en: http://localhost:${PORT}`);
+// Local TLS configuration (only enabled in development if certificates exist)
+const certPath = "./localhost+1.pem";
+const keyPath = "./localhost+1-key.pem";
+const isLocalTls = process.env.NODE_ENV !== "production" && existsSync(certPath) && existsSync(keyPath);
 
-export default {
+const serverOptions: {
+  port: number;
+  fetch: typeof app.fetch;
+  tls?: {
+    cert: ReturnType<typeof Bun.file>;
+    key: ReturnType<typeof Bun.file>;
+  };
+} = {
   port: PORT,
   fetch: app.fetch,
 };
+
+if (isLocalTls) {
+  serverOptions.tls = {
+    cert: Bun.file(certPath),
+    key: Bun.file(keyPath),
+  };
+  console.log(`Servidor de Asistencia HTTPS (modo local) activo en:`);
+  console.log(`  - Laptop:  https://localhost:${PORT}`);
+  console.log(`  - Celular: https://192.168.144.81:${PORT}`);
+} else {
+  console.log(`Servidor de Asistencia HTTP activo en: http://localhost:${PORT}`);
+}
+
+export default serverOptions;

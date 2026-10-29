@@ -68,7 +68,7 @@ describe("Attendance Route API & Verification Checks", () => {
       }),
     });
     expect(res1.status).toBe(400);
-    const data1 = await res1.json();
+    const data1 = (await res1.json()) as any;
     expect(data1.title).toBe("DNI no válido");
 
     // Letters in DNI
@@ -102,7 +102,7 @@ describe("Attendance Route API & Verification Checks", () => {
     });
 
     expect(res.status).toBe(400);
-    const data = await res.json();
+    const data = (await res.json()) as any;
     expect(data.title).toBe("Fuera de la zona del evento");
     expect(data.error).toContain("Te encuentras a aproximadamente");
   });
@@ -124,7 +124,7 @@ describe("Attendance Route API & Verification Checks", () => {
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(data.message).toBe("Asistencia registrada correctamente");
     expect(data.details.dni).toBe("01234567");
@@ -153,7 +153,7 @@ describe("Attendance Route API & Verification Checks", () => {
     });
 
     expect(res2.status).toBe(409);
-    const data2 = await res2.json();
+    const data2 = (await res2.json()) as any;
     expect(data2.title).toBe("Asistencia ya registrada");
     expect(data2.error).toContain("70809010");
   });
@@ -171,14 +171,14 @@ describe("Attendance Route API & Verification Checks", () => {
     });
 
     expect(res.status).toBe(400);
-    const data = await res.json();
+    const data = (await res.json()) as any;
     expect(data.title).toBe("El registro ha finalizado");
   });
 
   it("GET /asistir/:code/status should return event status JSON", async () => {
     const res = await app.request("/asistir/ev-open-100m/status");
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(data.status).toBe("OPEN");
     expect(data.is_open).toBe(true);
