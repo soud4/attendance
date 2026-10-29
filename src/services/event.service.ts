@@ -136,6 +136,33 @@ export class EventService {
   public static isEventExpired = isEventExpired;
   public static checkAutoClose = checkAutoClose;
 
+  // In-memory O(1) set of known public event codes to avoid redundant DB queries
+  private static knownCodes = new Set<string>();
+  private static cachedDbRef: any = null;
+
+  public static invalidateCache(): void {
+    this.cachedDbRef = null;
+    this.knownCodes.clear();
+  }
+
+  private static ensureCacheInitialized(): void {
+    const db = getDatabase();
+    if (this.cachedDbRef !== db) {
+      const rows = db.prepare("SELECT public_code FROM events").all() as { public_code: string }[];
+      this.knownCodes = new Set(rows.map((r) => r.public_code));
+      this.cachedDbRef = db;
+    }
+  }
+
+  /**
+   * Check in memory in O(1) if a public code exists without querying SQLite
+   */
+  public static codeExists(code: string): boolean {
+    if (!code || typeof code !== "string") return false;
+    this.ensureCacheInitialized();
+    return this.knownCodes.has(code);
+  }
+
   /**
    * Helper to generate a unique public code (e.g. ev-m8x2p4)
    */
@@ -247,9 +274,12 @@ export class EventService {
   }
 
   /**
-   * Get an event by its unique public code (e.g. 'ev-demo2026') with auto-close check
+   * Get an event by its unique public code (e.g. 'ev-demo2026') with in-memory check & auto-close
    */
   public static getByPublicCode(publicCode: string): Event | null {
+    if (!this.codeExists(publicCode)) {
+      return null;
+    }
     const db = getDatabase();
     const event = db
       .prepare("SELECT * FROM events WHERE public_code = $code")
@@ -292,8 +322,8 @@ export class EventService {
     const db = getDatabase();
     let publicCode = this.generatePublicCode();
 
-    // Ensure code uniqueness
-    while (db.prepare("SELECT id FROM events WHERE public_code = $code").get({ $code: publicCode })) {
+    // Ensure code uniqueness using in-memory set (0 DB queries)
+    while (this.codeExists(publicCode)) {
       publicCode = this.generatePublicCode();
     }
 
@@ -347,6 +377,7 @@ export class EventService {
     if (!created) {
       throw new Error("No se pudo recuperar el evento recién creado.");
     }
+    this.knownCodes.add(publicCode);
     return created;
   }
 
@@ -431,6 +462,7 @@ export class EventService {
     });
 
     deleteTx();
+    this.knownCodes.delete(existing.public_code);
     return true;
   }
 
