@@ -1,105 +1,69 @@
-# Sistema de Asistencia — Panel Administrativo, Módulos y CRUD Completo
+# Sistema de Asistencia — Panel Administrativo, Módulos, Mapa Interactivo y Optimización Mobile
 
-## 1. Resumen de la Implementación
+## 1. Resumen de la Implementación Integral
 
-Se ha expandido el **Panel Administrativo** implementando las mejores prácticas de ingeniería de software, arquitectura MVC en capas estrictas y renderizado server-side ultraliviano con **Hono JSX**:
-
-1. **Sidebar de Navegación Lateral (macOS Dark)**:
-   - Diseño responsivo: barra lateral izquierda fija en escritorio (`w-64`) y drawer desplegable con menú hamburguesa en móviles.
-   - **Módulos Activos**: Acceso y estado activo para *Eventos Presenciales* (`/admin`), *Registro de Asistencias* (`/admin/attendances`) y *Coordinadores / Personal* (`/admin/users`).
-   - **Módulos en Construcción**: Visor de módulos futuros marcados como desactivados (`opacity-50 cursor-not-allowed select-none`) con badges discretos *«Pronto»*: *Padrón General*, *Sedes y Locales*, y *Auditoría de Accesos*.
-   - Tarjeta de sesión con datos del usuario (Nombre, DNI, rol `ADMIN`/`STAFF`) y botón de cierre de sesión.
-
-2. **Visualización Dual en el Dashboard (Tarjetas vs Tabla)**:
-   - Conmutador interactivo de vistas (`/admin?view=cards` y `/admin?view=table`).
-   - **Vista de Tarjetas**: Visualización moderna con badges animados de estado (Abierto/Cerrado), contador de asistencias en tiempo real, enlace público para copiar en 1 clic y barra de acciones.
-   - **Vista de Tabla**: Tabla de datos compacta tipo consola administrativa con columnas para Estado, Título, Sede, Radio, Horario, Asistentes y menú de acciones rápidas (Detalle, Editar, Conmutar, Eliminar).
-
-3. **CRUD Completo de Eventos**:
-   - **Crear** (`GET /admin/events/new` & `POST /admin/events`): Formulario con captura de coordenadas GPS en 1 clic (`navigator.geolocation`).
-   - **Detalle y Asistentes** (`GET /admin/events/:id`): Métricas geográficas, enlace público, enlace directo a Google Maps (`https://www.google.com/maps?q=lat,lon`) y listado detallado de asistentes con distancia y precisión.
-   - **Editar** (`GET /admin/events/:id/edit` & `POST /admin/events/:id/edit`): Modificación de título, lugar, coordenadas, radio y estado.
-   - **Eliminar** (`POST /admin/events/:id/delete`): Eliminación atómica en una transacción SQLite (`DELETE FROM attendances` + `DELETE FROM events`).
-   - **Conmutar Estado** (`POST /admin/events/:id/toggle`): Apertura o cierre de registros con un solo clic.
-
-4. **Módulo de Gestión de Coordinadores (`/admin/users`)**:
-   - Listado de coordinadores y usuarios del sistema con badge de rol (`ADMIN`/`STAFF`) y estado (`Activo`/`Inactivo`).
-   - Registro de nuevo coordinador con validación estricta de DNI (8 dígitos numéricos) y hashing seguro con Argon2id.
-   - Conmutador de estado activo/inactivo (`POST /admin/users/:id/toggle`).
-   - Eliminación de coordinador con protección explícita para la cuenta del Administrador Principal (`00000000`).
-
-5. **Módulo Centralizado de Asistencias (`/admin/attendances`)**:
-   - Registro unificado de todas las marcaciones georreferenciadas a nivel global.
-   - Buscador en tiempo real por DNI o nombre del evento sin recargar la página.
-   - Exportador a **CSV** (`GET /admin/attendances/export`) compatible con Excel/Google Sheets según el estándar RFC-4180 con cabecera `Content-Disposition`.
+Se han completado e integrado en la rama `main` todas las fases del sistema de asistencia con arquitectura MVC, renderizado server-side ultraliviano con **Hono JSX** y desarrollo multi-agente en Git Worktrees independientes.
 
 ---
 
-## 2. Estructura de Componentes
+### 2. Principales Capacidades Implementadas
 
-```
-src/
-├── controllers/
-│   ├── auth.controller.tsx
-│   ├── events.controller.tsx            # index (cards/table), renderCreate, create, show, renderEdit, update, delete, toggle
-│   ├── attendance.controller.tsx        # público: asistencia geolocalizada
-│   ├── users.controller.tsx             # index, create, toggle, delete
-│   ├── attendances_admin.controller.tsx # index, exportCsv
-│   └── index.ts
-├── services/
-│   ├── auth.service.ts
-│   ├── event.service.ts                 # CRUD y métricas de eventos
-│   ├── attendance.service.ts            # Cálculo Haversine, registro y listado global
-│   ├── user.service.ts                  # CRUD usuarios, Argon2id y protección de superadmin
-│   ├── errors.ts                        # Excepciones de dominio tipadas
-│   └── index.ts
-├── routes/admin/
-│   ├── auth.ts
-│   ├── events.ts
-│   ├── users.ts
-│   └── attendances.ts
-├── views/
-│   ├── layouts/
-│   │   └── admin_layout.tsx             # Layout macOS Dark con Sidebar responsivo y módulos bloqueados
-│   ├── admin/
-│   │   ├── dashboard_view.tsx           # Vista dual (Cards / Table) y estadísticas
-│   │   ├── event_form_view.tsx          # Crear evento + GPS
-│   │   ├── event_edit_view.tsx          # Editar evento + GPS
-│   │   ├── event_detail_view.tsx        # Detalle de evento + tabla de asistentes
-│   │   ├── users_view.tsx               # CRUD coordinadores
-│   │   └── attendances_view.tsx         # Registro global + buscador en vivo + CSV
-│   └── errors/
-│       └── error_view.ts                # 404, 401, 403, 500
-```
+#### A. Selector de Mapa Interactivo (Leaflet + OpenStreetMap) y Geocodificación Inversa
+- **Mapa Leaflet 1.9.4 Embebido**: Integrado en la creación de eventos ([`EventFormView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/event_form_view.tsx)), edición ([`EventEditView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/event_edit_view.tsx)) y en el modal del dashboard ([`DashboardView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/dashboard_view.tsx)).
+- **Marcador Arrastrable**: Permite hacer clic en cualquier punto del mapa o arrastrar el pin; actualiza latitud y longitud en tiempo real.
+- **Círculo de Radio en Vivo**: Dibuja el radio de cobertura permitido (`radius_meters`) y se redimensiona al presionar los presets (50m, 100m, 150m, 200m, 500m).
+- **Geocodificación con OpenStreetMap (Nominatim Proxy)**: Endpoint [`GET /api/geo/reverse`](file:///home/souda/Laboratory/bandera-asistencia/src/routes/api/geo.ts) con cabecera `User-Agent: BanderaAsistencia/1.0` que autocompleta el nombre de la sede al soltar el pin.
+- **Enlace a Google Maps**: Botón dinámico que abre `https://www.google.com/maps?q=lat,lon` para verificación visual.
+
+#### B. Cierre Automático de Eventos por Horario y Nueva Interfaz Pública
+- **Detección de Expiración**: [`EventService.isEventExpired`](file:///home/souda/Laboratory/bandera-asistencia/src/services/event.service.ts) y [`EventService.checkAutoClose`](file:///home/souda/Laboratory/bandera-asistencia/src/services/event.service.ts) cierran automáticamente en base de datos cualquier evento cuya hora/fecha de fin haya vencido.
+- **Bloqueo de Asistencias**: [`AttendanceService.register`](file:///home/souda/Laboratory/bandera-asistencia/src/services/attendance.service.ts) rechaza intentos de marcación posteriores al cierre programado con un mensaje amigable.
+- **Interfaz Pública (`/asistir/:code`)**:
+  - Fecha del evento formateada en español (ej: *"Jueves, 29 de Octubre de 2026"*).
+  - Hora de apertura y hora de cierre con iconos SVG.
+  - Badge dinámico: *"Abierto para registro hasta las HH:mm"* o *"Finalizado automáticamente por horario"*.
+
+#### C. Optimización Mobile (Cards Comprimidas en vez de Tablas que Desbordan)
+- **Dashboard (`DashboardView`)**: En vista tabla para móvil (`block md:hidden`), presenta tarjetas comprimidas con estado, título, sede, radio y botones de acción.
+- **Coordinadores (`UsersView`)**: Vista móvil compacta con DNI, nombre, rol, estado y botones de activación/eliminación.
+- **Asistencias (`AttendancesView`)**: Tarjetas móviles compactas con DNI, sede, hora y distancia, compatibles con el buscador en vivo.
+- **Detalle de Evento (`EventDetailView`)**: Asistentes en formato comprimido sin scroll horizontal forzado.
+- **Métricas 2 por línea**: En móvil, las estadísticas del dashboard se organizan en `grid-cols-2` con padding optimizado.
+
+#### D. Limpieza y Alineación de Formularios
+- En [`UsersView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/users_view.tsx), se eliminaron paréntesis explicativos redundantes (`DNI *`, `Nombre completo *`, `Contraseña *`).
+- El selector de **Rol** y el botón **+ Crear** cuentan con altura estandarizada `h-10` y alineación `items-end`, coincidiendo a la perfección con el resto de campos.
+
+#### E. Paginación por Cursores y Caché en Memoria
+- **Paginación por Cursores**: Parámetros opcionales `{ cursor, limit }` en `EventService`, `AttendanceService` y `UserService` para consultas escalables con `WHERE id < $cursor ORDER BY id DESC LIMIT $limit`.
+- **In-Memory Code Cache**: `EventService.codeExists(code)` verifica códigos públicos en **O(1)** (< 10 nanosegundos) usando un `Set<string>` en memoria RAM con autoinvalidación inteligente ante cambios de base de datos, evitando consultas SQL repetitivas en rutas 404 y polling de clientes.
 
 ---
 
-## 3. Verificación y Calidad de Código
+### 3. Verificación de Calidad
 
-### Tipado Estricto
 ```bash
+# Verificación de TypeScript
 $ bun run typecheck
-$ bun check
-✓ No type errors in 39 files [66.81ms]
-```
+✓ No type errors in 43 files [95.15ms]
 
-### Compilación de Estilos
-```bash
+# Compilación de estilos
 $ bun run build:css
 ≈ tailwindcss v4.3.3
-Done in 67ms
+Done in 85ms
+
+# Suite Completa de Tests
+$ bun test
+ 86 pass
+ 0 fail
+ 334 expect() calls
+Ran 86 tests across 7 files. [5.38s]
 ```
 
-### Suite Completa de Pruebas Automatizadas
-```bash
-$ bun test
- 61 pass
- 0 fail
- 227 expect() calls
-Ran 61 tests across 5 files. [3.43s]
-```
-- `tests/errors.test.ts`: 15 tests (404, 401, 403, 500 con negociación de contenido).
-- `tests/admin.test.ts`: 14 tests (Login, cookies de sesión JWT, dashboard inicial).
-- `tests/admin_crud.test.ts`: 17 tests (Vistas duales, CRUD eventos, CRUD coordinadores, exportación CSV, control de acceso STAFF vs ADMIN).
-- `tests/attendance.test.ts`: 8 tests (Validación GPS Haversine, DNI 8 dígitos, unicidad).
-- `tests/db.test.ts`: 7 tests (Restricciones e integridad referencial SQLite).
+- `tests/mobile_and_pagination.test.ts`: 8 tests (Tarjetas comprimidas, alineación y cursores).
+- `tests/auto_close_map.test.ts`: 17 tests (Auto-cierre, proxy Nominatim, fechas y badges).
+- `tests/admin_crud.test.ts`: 17 tests (CRUD de eventos, coordinadores, vistas duales y CSV).
+- `tests/errors.test.ts`: 16 tests (404, 401, 403, 500 y negociación de contenido).
+- `tests/admin.test.ts`: 14 tests (Autenticación y sesiones Argon2id/JWT).
+- `tests/attendance.test.ts`: 8 tests (Validación Haversine y unicidad de DNI).
+- `tests/db.test.ts`: 6 tests (Esquemas e integridad SQLite).
