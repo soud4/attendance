@@ -33,6 +33,11 @@ export interface AttendanceWithEvent extends Attendance {
   event_public_code: string;
 }
 
+export interface PaginationOptions {
+  cursor?: number | null;
+  limit?: number | null;
+}
+
 export class AttendanceService {
   /**
    * Calculate distance between two coordinates in meters using the Haversine formula
@@ -176,31 +181,69 @@ export class AttendanceService {
   }
 
   /**
-   * Get all attendances registered for an event
+   * Get all attendances registered for an event with optional cursor pagination
    */
-  public static getByEventId(eventId: number): Attendance[] {
+  public static getByEventId(eventId: number, options?: PaginationOptions): Attendance[] {
     const db = getDatabase();
-    return db
-      .prepare("SELECT * FROM attendances WHERE event_id = $event_id ORDER BY id DESC")
-      .all({ $event_id: eventId }) as Attendance[];
+    let query = "SELECT * FROM attendances WHERE event_id = $event_id";
+    const params: Record<string, any> = { $event_id: eventId };
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " AND id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    return db.prepare(query).all(params) as Attendance[];
   }
 
   /**
-   * Get all attendances globally across all events with event title and code
+   * Get all attendances globally across all events with event title and code, with optional cursor pagination
    */
-  public static getAllWithEventInfo(): AttendanceWithEvent[] {
+  public static getAllWithEventInfo(options?: PaginationOptions): AttendanceWithEvent[] {
     const db = getDatabase();
-    return db
-      .prepare(`
-        SELECT 
-          a.*,
-          e.title as event_title,
-          e.public_code as event_public_code
-        FROM attendances a
-        JOIN events e ON a.event_id = e.id
-        ORDER BY a.id DESC
-      `)
-      .all() as AttendanceWithEvent[];
+    let query = `
+      SELECT 
+        a.*,
+        e.title as event_title,
+        e.public_code as event_public_code
+      FROM attendances a
+      JOIN events e ON a.event_id = e.id
+    `;
+    const params: Record<string, any> = {};
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " WHERE a.id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY a.id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    return db.prepare(query).all(params) as AttendanceWithEvent[];
+  }
+
+  /**
+   * Get total count of attendances (globally or by eventId)
+   */
+  public static getTotalCount(eventId?: number): number {
+    const db = getDatabase();
+    if (eventId != null) {
+      const result = db.prepare("SELECT COUNT(*) as count FROM attendances WHERE event_id = $event_id").get({ $event_id: eventId }) as { count: number };
+      return result?.count ?? 0;
+    }
+    const result = db.prepare("SELECT COUNT(*) as count FROM attendances").get() as { count: number };
+    return result?.count ?? 0;
   }
 
   /**

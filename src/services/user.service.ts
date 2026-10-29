@@ -14,15 +14,42 @@ export interface CreateUserInput {
   role?: "ADMIN" | "STAFF";
 }
 
+export interface UserPaginationOptions {
+  cursor?: number | null;
+  limit?: number | null;
+}
+
 export class UserService {
   /**
-   * List all users ordered by creation date
+   * List all users ordered by creation date, supporting optional cursor pagination
    */
-  public static getAll(): User[] {
+  public static getAll(options?: UserPaginationOptions): User[] {
     const db = getDatabase();
-    return db
-      .prepare("SELECT id, identifier, full_name, role, status, created_at FROM users ORDER BY id DESC")
-      .all() as User[];
+    let query = "SELECT id, identifier, full_name, role, status, created_at FROM users";
+    const params: Record<string, any> = {};
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " WHERE id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    return db.prepare(query).all(params) as User[];
+  }
+
+  /**
+   * Total count of users
+   */
+  public static getTotalCount(): number {
+    const db = getDatabase();
+    const res = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+    return res?.count ?? 0;
   }
 
   /**

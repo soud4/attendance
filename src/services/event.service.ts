@@ -32,6 +32,11 @@ export interface UpdateEventInput {
   status?: "OPEN" | "CLOSED" | "DRAFT";
 }
 
+export interface EventPaginationOptions {
+  cursor?: number | null;
+  limit?: number | null;
+}
+
 export class EventService {
   /**
    * Helper to generate a unique public code (e.g. ev-m8x2p4)
@@ -46,19 +51,40 @@ export class EventService {
   }
 
   /**
-   * List all events ordered by newest first with attendee counts
+   * List all events ordered by newest first with attendee counts, supporting optional cursor pagination
    */
-  public static getAllWithStats(): EventWithStats[] {
+  public static getAllWithStats(options?: EventPaginationOptions): EventWithStats[] {
     const db = getDatabase();
-    return db
-      .prepare(`
-        SELECT 
-          e.*,
-          (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id) as attendee_count
-        FROM events e
-        ORDER BY e.id DESC
-      `)
-      .all() as EventWithStats[];
+    let query = `
+      SELECT 
+        e.*,
+        (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id) as attendee_count
+      FROM events e
+    `;
+    const params: Record<string, any> = {};
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " WHERE e.id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY e.id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    return db.prepare(query).all(params) as EventWithStats[];
+  }
+
+  /**
+   * Total count of events
+   */
+  public static getTotalCount(): number {
+    const db = getDatabase();
+    const res = db.prepare("SELECT COUNT(*) as count FROM events").get() as { count: number };
+    return res?.count ?? 0;
   }
 
   /**
@@ -74,7 +100,10 @@ export class EventService {
   /**
    * Get an event with its full list of registered attendances
    */
-  public static getWithAttendances(id: number): { event: EventWithStats; attendances: Attendance[] } {
+  public static getWithAttendances(
+    id: number,
+    options?: EventPaginationOptions
+  ): { event: EventWithStats; attendances: Attendance[] } {
     const db = getDatabase();
     const event = db
       .prepare(`
@@ -90,13 +119,22 @@ export class EventService {
       throw new EventNotFoundError(id);
     }
 
-    const attendances = db
-      .prepare(`
-        SELECT * FROM attendances 
-        WHERE event_id = $id 
-        ORDER BY id DESC
-      `)
-      .all({ $id: id }) as Attendance[];
+    let query = "SELECT * FROM attendances WHERE event_id = $id";
+    const params: Record<string, any> = { $id: id };
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " AND id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    const attendances = db.prepare(query).all(params) as Attendance[];
 
     return { event, attendances };
   }

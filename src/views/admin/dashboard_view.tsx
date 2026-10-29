@@ -79,44 +79,44 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         </div>
       )}
 
-      {/* Stat Summary Cards */}
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Stat Summary Cards - 2 per line on mobile, 3 on desktop, compact padding */}
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
         {/* Total Eventos */}
-        <div class="p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-neutral-400">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="p-3 sm:p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-neutral-400 shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
           <div>
-            <div class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Total Eventos</div>
-            <div class="text-xl font-bold text-white font-mono mt-0.5">{totalEvents}</div>
+            <div class="text-[10px] sm:text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Total Eventos</div>
+            <div class="text-lg sm:text-xl font-bold text-white font-mono mt-0.5">{totalEvents}</div>
           </div>
         </div>
 
         {/* Eventos Abiertos */}
-        <div class="p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-emerald-950/50 text-emerald-400 flex items-center justify-center">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="p-3 sm:p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-950/50 text-emerald-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <div class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">En Curso (Abiertos)</div>
-            <div class="text-xl font-bold text-emerald-400 font-mono mt-0.5">{openEvents}</div>
+            <div class="text-[10px] sm:text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">En Curso</div>
+            <div class="text-lg sm:text-xl font-bold text-emerald-400 font-mono mt-0.5">{openEvents}</div>
           </div>
         </div>
 
         {/* Total Asistencias */}
-        <div class="p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-blue-950/50 text-blue-400 flex items-center justify-center">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="col-span-2 md:col-span-1 p-3 sm:p-4 rounded-2xl bg-neutral-900 border border-neutral-800/80 flex items-center gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-950/50 text-blue-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
           <div>
-            <div class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Asistencias Totales</div>
-            <div class="text-xl font-bold text-blue-400 font-mono mt-0.5">{totalAttendances}</div>
+            <div class="text-[10px] sm:text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Asistencias</div>
+            <div class="text-lg sm:text-xl font-bold text-blue-400 font-mono mt-0.5">{totalAttendances}</div>
           </div>
         </div>
       </div>
@@ -141,9 +141,131 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
           </a>
         </div>
       ) : currentView === "table" ? (
-        /* TABLE VIEW */
+        /* TABLE VIEW CONTAINER: Mobile Compressed Cards + Desktop Full Table */
         <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
-          <div class="overflow-x-auto">
+          {/* Mobile Compressed Cards (block md:hidden) */}
+          <div class="block md:hidden divide-y divide-neutral-800/70">
+            {events.map((event) => {
+              const isOpen = event.status === "OPEN";
+              const schedule =
+                event.starts_at && event.ends_at
+                  ? `${event.starts_at} - ${event.ends_at}`
+                  : event.starts_at || event.ends_at || "—";
+
+              return (
+                <div class="p-4 space-y-2.5">
+                  {/* Top Bar: Badge, Code & Attendees */}
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      {isOpen ? (
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Abierto
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700/50">
+                          <span class="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                          Cerrado
+                        </span>
+                      )}
+                      <span class="font-mono text-[10px] text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-700/50">
+                        {event.public_code}
+                      </span>
+                    </div>
+
+                    <span class={`font-mono text-xs font-bold ${event.attendee_count > 0 ? "text-blue-400" : "text-neutral-500"}`}>
+                      {event.attendee_count} asist.
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <a href={`/admin/events/${event.id}`} class="block group">
+                    <h3 class="font-bold text-white text-sm group-hover:text-blue-400 transition-colors leading-snug">
+                      {event.title}
+                    </h3>
+                  </a>
+
+                  {/* Details */}
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-400">
+                    <span class="flex items-center gap-1 text-neutral-300 truncate max-w-[180px]">
+                      <svg class="w-3.5 h-3.5 text-neutral-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span class="truncate">{event.location_name || "—"}</span>
+                    </span>
+
+                    <span>&bull;</span>
+
+                    <span>Radio: <b class="text-neutral-300 font-mono">{event.radius_meters}m</b></span>
+
+                    <span>&bull;</span>
+
+                    <span class="truncate">{schedule}</span>
+                  </div>
+
+                  {/* Action Toolbar */}
+                  <div class="flex items-center justify-between gap-2 pt-2 border-t border-neutral-800/60">
+                    <div class="flex items-center gap-1.5">
+                      <a
+                        href={`/admin/events/${event.id}`}
+                        class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-xs font-semibold transition-colors flex items-center gap-1"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span>Ver</span>
+                      </a>
+
+                      <a
+                        href={`/admin/events/${event.id}/edit`}
+                        class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-xs font-semibold transition-colors flex items-center gap-1"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>Editar</span>
+                      </a>
+
+                      <form action={`/admin/events/${event.id}/toggle`} method="post" class="inline">
+                        <button
+                          type="submit"
+                          class={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                            isOpen
+                              ? "bg-amber-950/40 text-amber-400 hover:bg-amber-900/60"
+                              : "bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/60"
+                          }`}
+                        >
+                          {isOpen ? "Cerrar" : "Abrir"}
+                        </button>
+                      </form>
+                    </div>
+
+                    <form
+                      action={`/admin/events/${event.id}/delete`}
+                      method="post"
+                      class="inline"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar este evento y todos sus registros de asistencia? Esta acción no se puede deshacer.');"
+                    >
+                      <button
+                        type="submit"
+                        title="Eliminar evento"
+                        class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 transition-colors cursor-pointer"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Full Table (hidden md:block) */}
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs text-neutral-300">
               <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
@@ -366,18 +488,18 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
                     <button
                       type="button"
                       onclick={`copyLink('/asistir/${event.public_code}', this)`}
-                      class="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
+                      class="px-2 py-0.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       Copiar
                     </button>
                   </div>
 
-                  {/* Botones de Control del Evento (CRUD) */}
+                  {/* Botones de Administración */}
                   <div class="flex items-center gap-2">
-                    {/* Ver Detalle */}
+                    {/* Ver Detalles */}
                     <a
                       href={`/admin/events/${event.id}`}
-                      class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-neutral-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5"
+                      class="px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 text-xs font-semibold transition-all flex items-center gap-1.5"
                     >
                       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
