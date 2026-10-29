@@ -1,4 +1,4 @@
-import type { Event } from "../db";
+import type { Event, Attendance } from "../db";
 import { isEventExpired } from "../services/event.service";
 
 export function formatSpanishDate(startsAt: string | null, createdAt: string): string {
@@ -49,7 +49,12 @@ export function cleanTimeDisplay(val: string | null, defaultFallback: string): s
   return raw;
 }
 
-export function AttendanceView({ event }: { event: Event }) {
+export interface AttendanceViewProps {
+  event: Event;
+  initialAttendance?: Attendance | null;
+}
+
+export function AttendanceView({ event, initialAttendance }: AttendanceViewProps) {
   const expired = isEventExpired(event);
   const isOpen = event.status === "OPEN" && !expired;
   const isAutoClosed = event.status === "CLOSED" && expired;
@@ -59,17 +64,31 @@ export function AttendanceView({ event }: { event: Event }) {
   const openingTime = cleanTimeDisplay(event.starts_at, "08:00 AM");
   const closingTime = cleanTimeDisplay(event.ends_at, "06:00 PM");
 
+  const hasCheckIn = !!initialAttendance;
+  const hasCheckOut = !!initialAttendance?.check_out_at;
+  const checkInTime = initialAttendance ? cleanTimeDisplay(initialAttendance.created_at, "") : "";
+  const checkOutTime = initialAttendance?.check_out_at ? cleanTimeDisplay(initialAttendance.check_out_at, "") : "";
+
   return (
     <html lang="es" class="h-full">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="view-transition" content="same-origin" />
         <title>{event.title} — Asistencia</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="/css/tailwind.css" />
         <style>{`
+          @view-transition {
+            navigation: auto;
+          }
+          ::view-transition-old(root),
+          ::view-transition-new(root) {
+            animation-duration: 0.15s;
+            animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+          }
           body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
@@ -210,7 +229,21 @@ export function AttendanceView({ event }: { event: Event }) {
 
             {/* Formulario o estado finalizado */}
             <div class="px-6 py-6" id="interactiveContent">
-              {isOpen ? (
+              {hasCheckOut ? (
+                <div class="p-5 rounded-xl bg-emerald-950/40 border border-emerald-800/50 space-y-3">
+                  <div class="flex items-center gap-2.5 text-emerald-300 font-semibold text-sm">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Asistencia completa confirmada</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-xs font-mono text-neutral-300 pt-1 border-t border-emerald-800/30">
+                    <div>Entrada: <strong class="text-white">{checkInTime}</strong></div>
+                    <div>Salida: <strong class="text-white">{checkOutTime}</strong></div>
+                  </div>
+                  <p class="text-[11px] text-neutral-400">DNI: {initialAttendance?.dni} &bull; Tu permanencia fue verificada exitosamente.</p>
+                </div>
+              ) : isOpen ? (
                 <div class="space-y-5">
                   {/* Tarjeta explícita para permitir ubicación */}
                   <div id="locationPromptCard" class="hidden p-3.5 bg-blue-950/40 border border-blue-800/40 rounded-xl flex items-center justify-between gap-3">
@@ -231,6 +264,19 @@ export function AttendanceView({ event }: { event: Event }) {
                     </button>
                   </div>
 
+                  {/* Banner de entrada activa si el usuario ya registró entrada */}
+                  {hasCheckIn && (
+                    <div id="checkInActiveBanner" class="p-3.5 rounded-xl bg-amber-950/40 border border-amber-800/50 flex items-start gap-3">
+                      <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div class="text-xs">
+                        <div class="font-semibold text-amber-200">Entrada registrada a las {checkInTime}</div>
+                        <div class="text-neutral-400 text-[11px] mt-0.5">Al finalizar tu participación, marca tu salida para completar tu asistencia.</div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label for="dniInput" class="flex items-center gap-2 text-[13px] font-semibold text-neutral-400 mb-2">
                       <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -248,16 +294,27 @@ export function AttendanceView({ event }: { event: Event }) {
                       autocorrect="off"
                       spellcheck={false}
                       placeholder="00000000"
-                      class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono tracking-widest text-2xl py-3.5 px-4 placeholder:text-neutral-700 focus:bg-neutral-800 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all"
+                      value={initialAttendance?.dni || ""}
+                      disabled={hasCheckIn}
+                      class={`w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono tracking-widest text-2xl py-3.5 px-4 placeholder:text-neutral-700 focus:bg-neutral-800 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all ${
+                        hasCheckIn ? "opacity-75 cursor-not-allowed" : ""
+                      }`}
                     />
-                    <p class="mt-1.5 text-[11px] text-neutral-600">Ingresa los 8 dígitos numéricos de tu documento</p>
+                    <p class="mt-1.5 text-[11px] text-neutral-600">
+                      {hasCheckIn ? "DNI bloqueado para marcación de salida" : "Ingresa los 8 dígitos numéricos de tu documento"}
+                    </p>
                   </div>
 
                   <button
                     type="button"
                     id="submitBtn"
-                    disabled
-                    class="w-full py-3.5 px-4 bg-neutral-800 text-neutral-600 font-semibold text-[15px] rounded-xl cursor-not-allowed transition-all flex items-center justify-center gap-2.5"
+                    data-action={hasCheckIn ? "CHECK_OUT" : "CHECK_IN"}
+                    disabled={!hasCheckIn}
+                    class={
+                      hasCheckIn
+                        ? "w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-[15px] rounded-xl cursor-pointer shadow-lg shadow-emerald-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5"
+                        : "w-full py-3.5 px-4 bg-neutral-800 text-neutral-600 font-semibold text-[15px] rounded-xl cursor-not-allowed transition-all flex items-center justify-center gap-2.5"
+                    }
                   >
                     <svg id="btnSpinner" class="hidden animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -266,7 +323,7 @@ export function AttendanceView({ event }: { event: Event }) {
                     <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span id="btnText">Registrar asistencia</span>
+                    <span id="btnText">{hasCheckIn ? "Marcar salida" : "Registrar asistencia"}</span>
                   </button>
                 </div>
               ) : (
@@ -299,7 +356,7 @@ export function AttendanceView({ event }: { event: Event }) {
 
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__EVENT_CODE__ = ${JSON.stringify(event.public_code)};`,
+            __html: `window.__EVENT_CODE__ = ${JSON.stringify(event.public_code)}; window.__INITIAL_ATTENDANCE__ = ${JSON.stringify(initialAttendance || null)};`,
           }}
         />
         <script src="/js/asistencia.js" />
@@ -309,6 +366,6 @@ export function AttendanceView({ event }: { event: Event }) {
 }
 
 // Backward compatible helper for string rendering in existing tests/controllers
-export function renderAttendanceView(event: Event): any {
-  return <AttendanceView event={event} />;
+export function renderAttendanceView(event: Event, initialAttendance?: Attendance | null): any {
+  return <AttendanceView event={event} initialAttendance={initialAttendance} />;
 }

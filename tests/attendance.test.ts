@@ -126,36 +126,54 @@ describe("Attendance Route API & Verification Checks", () => {
     expect(res.status).toBe(200);
     const data = (await res.json()) as any;
     expect(data.success).toBe(true);
-    expect(data.message).toBe("Asistencia registrada correctamente");
+    expect(data.message).toContain("Entrada registrada");
     expect(data.details.dni).toBe("01234567");
   });
 
-  it("POST /asistir/:code should reject duplicate DNI registration with 409 Conflict", async () => {
+  it("POST /asistir/:code should support check-in then check-out and reject subsequent attempts with 409", async () => {
     const coords = {
       latitude: -12.046374,
       longitude: -77.042793,
       accuracy: 5,
     };
 
-    // First attempt succeeds
+    // First attempt succeeds: CHECK_IN
     const res1 = await app.request("/asistir/ev-open-100m", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dni: "70809010", ...coords }),
     });
     expect(res1.status).toBe(200);
+    const data1 = (await res1.json()) as any;
+    expect(data1.success).toBe(true);
+    expect(data1.action).toBe("CHECK_IN");
+    expect(data1.message).toContain("Entrada registrada");
+    expect(data1.details.check_in_at).toBeDefined();
 
-    // Second attempt with same DNI must fail with 409 Conflict
+    // Second attempt with same DNI succeeds: CHECK_OUT
     const res2 = await app.request("/asistir/ev-open-100m", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dni: "70809010", ...coords }),
     });
-
-    expect(res2.status).toBe(409);
+    expect(res2.status).toBe(200);
     const data2 = (await res2.json()) as any;
-    expect(data2.title).toBe("Asistencia ya registrada");
-    expect(data2.error).toContain("70809010");
+    expect(data2.success).toBe(true);
+    expect(data2.action).toBe("CHECK_OUT");
+    expect(data2.message).toContain("Salida registrada");
+    expect(data2.details.check_out_at).toBeDefined();
+
+    // Third attempt with same DNI must fail with 409 Conflict (both completed)
+    const res3 = await app.request("/asistir/ev-open-100m", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dni: "70809010", ...coords }),
+    });
+
+    expect(res3.status).toBe(409);
+    const data3 = (await res3.json()) as any;
+    expect(data3.title).toBe("Asistencia ya registrada");
+    expect(data3.error).toContain("70809010");
   });
 
   it("POST /asistir/:code should reject attendance when event is closed with 400", async () => {

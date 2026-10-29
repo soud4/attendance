@@ -7,8 +7,11 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
 } from "../views/errors/error_view";
+import { env } from "../config/env";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bandera-asistencia-secret-key-2026-secure";
+const JWT_SECRET = env.JWT_SECRET;
+const COOKIE_NAME = env.SESSION_COOKIE_NAME;
+const SESSION_MAX_AGE = env.SESSION_MAX_AGE_SECONDS;
 
 export interface UserSession {
   id: number;
@@ -44,7 +47,7 @@ export async function createSessionToken(user: UserSession): Promise<string> {
     identifier: user.identifier,
     full_name: user.full_name,
     role: user.role,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
+    exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE,
   };
   return await sign(payload, JWT_SECRET, "HS256");
 }
@@ -72,12 +75,12 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
  * Sets secure HttpOnly session cookie
  */
 export function setSessionCookie(c: Context, token: string): void {
-  setCookie(c, "auth_session", token, {
+  setCookie(c, COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     sameSite: "Lax",
     path: "/",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: SESSION_MAX_AGE,
   });
 }
 
@@ -85,7 +88,7 @@ export function setSessionCookie(c: Context, token: string): void {
  * Clears session cookie on logout
  */
 export function clearSessionCookie(c: Context): void {
-  deleteCookie(c, "auth_session", {
+  deleteCookie(c, COOKIE_NAME, {
     path: "/",
   });
 }
@@ -94,7 +97,7 @@ export function clearSessionCookie(c: Context): void {
  * Middleware: Protects routes and attaches user session to context
  */
 export async function authMiddleware(c: Context, next: Next) {
-  const token = getCookie(c, "auth_session");
+  const token = getCookie(c, COOKIE_NAME);
   if (!token) {
     if (isJsonRequest(c)) {
       return unauthorizedResponse(c, "Autenticación requerida para acceder a este recurso");

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { env } from "../../config/env";
 
 export const geoRoute = new Hono();
 
@@ -41,7 +42,7 @@ geoRoute.get("/reverse", async (c) => {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "BanderaAsistencia/1.0 (asistencia@bandera.pe)",
+        "User-Agent": env.NOMINATIM_USER_AGENT,
         "Accept": "application/json",
       },
     });

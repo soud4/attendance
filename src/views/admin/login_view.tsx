@@ -131,12 +131,6 @@ export function LoginView({ errorMessage, prefillDni }: LoginViewProps) {
                 </svg>
               </button>
             </form>
-
-            <div class="mt-6 pt-5 border-t border-neutral-800 text-center">
-              <p class="text-[11px] text-neutral-500">
-                Credenciales por defecto iniciales: DNI <span class="font-mono text-neutral-300">00000000</span> / Contraseña: <span class="font-mono text-neutral-300">admin123</span>
-              </p>
-            </div>
           </div>
         </main>
 

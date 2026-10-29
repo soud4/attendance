@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS attendances (
     ip_address TEXT,
     user_agent TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    check_out_at TEXT,
 
     -- Constraints
     UNIQUE (event_id, dni),

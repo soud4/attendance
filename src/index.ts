@@ -20,6 +20,7 @@ import {
   isJsonRequest,
 } from "./views/errors/error_view";
 import { WelcomeView } from "./views/public/welcome_view";
+import { env } from "./config/env";
 
 // Initialize database & schema
 const db = getDatabase();
@@ -29,7 +30,7 @@ initSchema(db);
 try {
   seedAdminUser(db);
   const eventCount = (db.query("SELECT COUNT(*) as count FROM events").get() as { count: number })?.count || 0;
-  if (eventCount === 0 || process.env.AUTO_SEED === "true") {
+  if (eventCount === 0 || env.AUTO_SEED) {
     seedDemoEvent(db);
   }
 } catch (e) {
@@ -132,12 +133,12 @@ export function createApp(): Hono {
 
 export const app = createApp();
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = env.PORT;
 
 // Local TLS configuration (only enabled in development if certificates exist)
 const certPath = "./localhost+1.pem";
 const keyPath = "./localhost+1-key.pem";
-const isLocalTls = process.env.NODE_ENV !== "production" && existsSync(certPath) && existsSync(keyPath);
+const isLocalTls = env.NODE_ENV !== "production" && existsSync(certPath) && existsSync(keyPath);
 
 const serverOptions: {
   port: number;

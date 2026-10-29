@@ -8,6 +8,7 @@ import {
   OutOfRadiusError,
   AttendanceAlreadyRegisteredError,
 } from "./errors";
+import { EARTH_RADIUS_METERS, DNI_REGEX } from "../config";
 
 export interface RegisterAttendanceInput {
   eventPublicCode: string;
@@ -27,6 +28,9 @@ export interface AttendanceResult {
   dni: string;
   distanceMeters: number;
   recordedAt: string;
+  action: "CHECK_IN" | "CHECK_OUT";
+  checkInAt?: string;
+  checkOutAt?: string;
 }
 
 export interface AttendanceWithEvent extends Attendance {
@@ -40,6 +44,22 @@ export interface PaginationOptions {
 }
 
 export class AttendanceService {
+  // In-memory cache of fully completed (event_id:dni) keys to reject repeat attempts in 0 ms
+  private static completedAttendanceKeys = new Set<string>();
+  private static cachedDbRef: any = null;
+
+  public static clearCache(): void {
+    this.completedAttendanceKeys.clear();
+    this.cachedDbRef = null;
+  }
+
+  private static ensureCacheInitialized(db: any): void {
+    if (this.cachedDbRef !== db) {
+      this.completedAttendanceKeys.clear();
+      this.cachedDbRef = db;
+    }
+  }
+
   /**
    * Calculate distance between two coordinates in meters using the Haversine formula
    */
@@ -49,7 +69,7 @@ export class AttendanceService {
     lat2: number,
     lon2: number
   ): number {
-    const R = 6371000; // Earth radius in meters
+    const R = EARTH_RADIUS_METERS;
     const toRad = (angle: number) => (angle * Math.PI) / 180;
 
     const dLat = toRad(lat2 - lat1);
@@ -67,13 +87,13 @@ export class AttendanceService {
   }
 
   /**
-   * Register attendance for an attendee with full business validations
+   * Register attendance for an attendee with atomic unique constraint enforcement
    */
   public static register(input: RegisterAttendanceInput): AttendanceResult {
     const dni = String(input.dni || "").trim();
 
     // 1. Strict DNI Validation (8 digits)
-    if (!/^\d{8}$/.test(dni)) {
+    if (!DNI_REGEX.test(dni)) {
       throw new InvalidDniError("El DNI debe contener exactamente 8 dígitos numéricos sin letras ni símbolos.");
     }
 
@@ -124,16 +144,53 @@ export class AttendanceService {
       throw new OutOfRadiusError(distanceMeters, event.radius_meters);
     }
 
-    // 6. Check for duplicate registration
-    const existing = db
-      .prepare("SELECT id, created_at FROM attendances WHERE event_id = $event_id AND dni = $dni")
-      .get({ $event_id: event.id, $dni: dni }) as { id: number; created_at: string } | null;
-
-    if (existing) {
+    // 6. Fast In-Memory Check for fully completed attendees (0 ms)
+    const memoryKey = `${event.id}:${dni}`;
+    this.ensureCacheInitialized(db);
+    if (this.completedAttendanceKeys.has(memoryKey)) {
       throw new AttendanceAlreadyRegisteredError(dni);
     }
 
-    // 7. Insert Attendance Record
+    // 7. Check if attendee already registered Entrada
+    const existingStmt = db.prepare(`
+      SELECT id, created_at, check_out_at
+      FROM attendances
+      WHERE event_id = $event_id AND dni = $dni;
+    `);
+    const existing = existingStmt.get({ $event_id: event.id, $dni: dni }) as
+      | { id: number; created_at: string; check_out_at: string | null }
+      | undefined;
+
+    if (existing) {
+      if (existing.check_out_at) {
+        this.completedAttendanceKeys.add(memoryKey);
+        throw new AttendanceAlreadyRegisteredError(dni);
+      }
+
+      // Record CHECK_OUT (Salida)
+      const updateStmt = db.prepare(`
+        UPDATE attendances
+        SET check_out_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE id = $id AND check_out_at IS NULL
+        RETURNING check_out_at;
+      `);
+      const updated = updateStmt.get({ $id: existing.id }) as { check_out_at: string } | undefined;
+      const checkOutAt = updated?.check_out_at || new Date().toISOString();
+      this.completedAttendanceKeys.add(memoryKey);
+
+      return {
+        attendanceId: existing.id,
+        event,
+        dni,
+        distanceMeters,
+        recordedAt: checkOutAt,
+        action: "CHECK_OUT",
+        checkInAt: existing.created_at,
+        checkOutAt,
+      };
+    }
+
+    // 8. Record CHECK_IN (Entrada) - Atomic Insert
     const method = input.method || "SELF";
 
     const insertStmt = db.prepare(`
@@ -162,18 +219,30 @@ export class AttendanceService {
       ) RETURNING id, created_at;
     `);
 
-    const result = insertStmt.get({
-      $event_id: event.id,
-      $dni: dni,
-      $latitude: input.latitude,
-      $longitude: input.longitude,
-      $accuracy_meters: input.accuracy,
-      $distance_meters: distanceMeters,
-      $method: method,
-      $ip_address: input.ipAddress || "127.0.0.1",
-      $user_agent: input.userAgent || "Unknown",
-      $recorded_by_user_id: input.recordedByUserId || null,
-    }) as { id: number; created_at: string };
+    let result: { id: number; created_at: string };
+    try {
+      result = insertStmt.get({
+        $event_id: event.id,
+        $dni: dni,
+        $latitude: input.latitude,
+        $longitude: input.longitude,
+        $accuracy_meters: input.accuracy,
+        $distance_meters: distanceMeters,
+        $method: method,
+        $ip_address: input.ipAddress || "127.0.0.1",
+        $user_agent: input.userAgent || "Unknown",
+        $recorded_by_user_id: input.recordedByUserId || null,
+      }) as { id: number; created_at: string };
+    } catch (err: any) {
+      if (
+        err?.message?.includes("UNIQUE constraint failed") ||
+        err?.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+        err?.code === "SQLITE_CONSTRAINT"
+      ) {
+        throw new AttendanceAlreadyRegisteredError(dni);
+      }
+      throw err;
+    }
 
     return {
       attendanceId: result.id,
@@ -181,7 +250,23 @@ export class AttendanceService {
       dni,
       distanceMeters,
       recordedAt: result.created_at,
+      action: "CHECK_IN",
+      checkInAt: result.created_at,
     };
+  }
+
+  /**
+   * Get an attendance record by eventId and DNI
+   */
+  public static getByEventAndDni(eventId: number, dni: string): Attendance | null {
+    const db = getDatabase();
+    const stmt = db.prepare(`
+      SELECT *
+      FROM attendances
+      WHERE event_id = $event_id AND dni = $dni;
+    `);
+    const record = stmt.get({ $event_id: eventId, $dni: dni }) as Attendance | undefined;
+    return record || null;
   }
 
   /**

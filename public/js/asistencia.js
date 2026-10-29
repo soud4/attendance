@@ -174,6 +174,47 @@
       '<p class="mt-1.5 text-[14px] text-neutral-500">' + msg + '</p></div>';
   }
 
+  function formatTime(isoStr) {
+    if (!isoStr) return "";
+    try {
+      var d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      return d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true });
+    } catch (_) {
+      return isoStr;
+    }
+  }
+
+  function setCheckoutMode(dni, checkInTime) {
+    if (dniInput) {
+      dniInput.value = dni;
+      dniInput.disabled = true;
+      dniInput.classList.add("opacity-75", "cursor-not-allowed");
+    }
+    if (submitBtn) {
+      submitBtn.dataset.action = "CHECK_OUT";
+      submitBtn.disabled = !navigator.onLine;
+      submitBtn.className = "w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-[15px] rounded-xl cursor-pointer shadow-lg shadow-emerald-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5";
+      if (btnText) btnText.textContent = "Marcar salida";
+    }
+  }
+
+  // Hydrate checkout state from localStorage if not rendered by server
+  var initialAtt = window.__INITIAL_ATTENDANCE__;
+  if (!initialAtt) {
+    try {
+      var localStr = localStorage.getItem("att_" + code);
+      if (localStr) {
+        var parsed = JSON.parse(localStr);
+        if (parsed && parsed.dni && parsed.check_in_at) {
+          setCheckoutMode(parsed.dni, formatTime(parsed.check_in_at));
+        }
+      }
+    } catch (_) {}
+  } else if (initialAtt && !initialAtt.check_out_at) {
+    setCheckoutMode(initialAtt.dni, formatTime(initialAtt.created_at));
+  }
+
   // 5. Input DNI
   if (dniInput) {
     dniInput.addEventListener("input", function(e) {
@@ -186,6 +227,10 @@
 
   function syncBtn() {
     if (!dniInput || !submitBtn) return;
+    if (submitBtn.dataset.action === "CHECK_OUT") {
+      submitBtn.disabled = !navigator.onLine || !!submitBtn.dataset.busy;
+      return;
+    }
     var ok = dniInput.value.length === 8 && navigator.onLine && !submitBtn.dataset.busy;
     submitBtn.disabled = !ok;
     submitBtn.className = ok
@@ -193,7 +238,7 @@
       : "w-full py-3.5 px-4 bg-neutral-800 text-neutral-600 font-semibold text-[15px] rounded-xl cursor-not-allowed transition-all flex items-center justify-center gap-2.5";
   }
 
-  // 6. Envío de Asistencia
+  // 6. Envío de Asistencia (Entrada o Salida)
   if (submitBtn) {
     submitBtn.addEventListener("click", function() {
       var dni = dniInput.value.trim();
@@ -204,7 +249,8 @@
         return;
       }
 
-      busy(true, "Obteniendo ubicación GPS...");
+      var isCheckout = submitBtn.dataset.action === "CHECK_OUT";
+      busy(true, isCheckout ? "Obteniendo ubicación para salida..." : "Obteniendo ubicación GPS...");
       clear();
 
       // Si ya tenemos coordenadas recientes (< 45s) las enviamos directamente
@@ -249,7 +295,8 @@
   }
 
   async function enviarAsistencia(dni, lat, lng, acc) {
-    busy(true, "Registrando asistencia...");
+    var isCheckout = submitBtn && submitBtn.dataset.action === "CHECK_OUT";
+    busy(true, isCheckout ? "Registrando salida..." : "Registrando entrada...");
     try {
       var r = await fetch("/asistir/" + encodeURIComponent(code), {
         method: "POST",
@@ -258,9 +305,35 @@
       });
       var d = await r.json();
       if (r.ok && d.success) {
-        success(d.message, d.details);
-        dniInput.disabled = true;
-        submitBtn.style.display = "none";
+        if (d.action === "CHECK_IN") {
+          // Persist in localStorage for recovery
+          try {
+            localStorage.setItem("att_" + code, JSON.stringify({
+              dni: dni,
+              check_in_at: d.details ? d.details.check_in_at || d.details.recorded_at : new Date().toISOString()
+            }));
+          } catch (_) {}
+
+          var inTime = formatTime(d.details ? d.details.check_in_at || d.details.recorded_at : "");
+          setCheckoutMode(dni, inTime);
+          busy(false);
+          notice(
+            "info",
+            "Entrada registrada a las " + inTime,
+            "Tu ingreso fue validado. Al finalizar tu participación, presiona 'Marcar salida' antes de retirarte del evento."
+          );
+        } else {
+          // CHECK_OUT completed
+          try {
+            localStorage.removeItem("att_" + code);
+          } catch (_) {}
+
+          successCheckout(d.message, d.details);
+          if (submitBtn) submitBtn.style.display = "none";
+          if (dniInput) dniInput.disabled = true;
+          var activeBanner = $("checkInActiveBanner");
+          if (activeBanner) activeBanner.remove();
+        }
       } else {
         if (d.title === "El registro ha finalizado") {
           var isAuto = (d.error || "").indexOf("automáticamente") !== -1;
@@ -280,16 +353,21 @@
   function busy(on, txt) {
     if (!submitBtn) return;
     submitBtn.dataset.busy = on ? "1" : "";
+    var isCheckout = submitBtn.dataset.action === "CHECK_OUT";
     if (on) {
       submitBtn.disabled = true;
-      if (dniInput) dniInput.disabled = true;
       btnSpinner.classList.remove("hidden");
       btnText.textContent = txt;
     } else {
-      if (dniInput) dniInput.disabled = false;
       btnSpinner.classList.add("hidden");
-      btnText.textContent = "Registrar asistencia";
-      syncBtn();
+      if (isCheckout) {
+        submitBtn.disabled = !navigator.onLine;
+        btnText.textContent = "Marcar salida";
+      } else {
+        if (dniInput) dniInput.disabled = false;
+        btnText.textContent = "Registrar asistencia";
+        syncBtn();
+      }
     }
   }
 
@@ -302,27 +380,37 @@
 
   function notice(type, title, msg) {
     if (!statusContainer) return;
-    var cls = type === "error" ? "bg-red-950/50 border-red-900/40 text-red-300" : "bg-neutral-800 border-neutral-700 text-neutral-300";
+    var cls = type === "error"
+      ? "bg-red-950/50 border-red-900/40 text-red-300"
+      : type === "info"
+      ? "bg-emerald-950/50 border-emerald-800/40 text-emerald-300"
+      : "bg-neutral-800 border-neutral-700 text-neutral-300";
+    var iconSvg = type === "info"
+      ? '<svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+      : '<svg class="w-5 h-5 flex-shrink-0 mt-0.5 ' + (type === "error" ? "text-red-400" : "text-neutral-400") + '" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+
     statusContainer.className = "mt-5 p-4 rounded-xl border " + cls;
     statusContainer.innerHTML =
       '<div class="flex items-start gap-3">' +
-      '<svg class="w-5 h-5 flex-shrink-0 mt-0.5 ' + (type === "error" ? "text-red-400" : "text-neutral-400") + '" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>' +
-      '<div><p class="text-[13px] font-semibold">' + esc(title) + '</p><p class="mt-0.5 text-[12px] text-neutral-400 leading-relaxed">' + esc(msg) + '</p></div></div>';
+      iconSvg +
+      '<div><p class="text-[13px] font-semibold">' + esc(title) + '</p><p class="mt-0.5 text-[12px] opacity-90 leading-relaxed">' + esc(msg) + '</p></div></div>';
   }
 
-  function success(msg, det) {
+  function successCheckout(msg, det) {
     if (!statusContainer) return;
     statusContainer.className = "mt-5 p-4 rounded-xl bg-emerald-950/50 border border-emerald-800/40 text-emerald-300";
+    var inT = det && det.check_in_at ? formatTime(det.check_in_at) : "";
+    var outT = det && det.check_out_at ? formatTime(det.check_out_at) : formatTime(new Date().toISOString());
+
     var h = '<div class="flex items-start gap-3">' +
-      '<svg class="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' +
-      '<div><p class="text-[14px] font-semibold text-emerald-200">' + esc(msg) + '</p>';
-    if (det) {
-      h += '<div class="mt-1.5 text-[12px] text-emerald-400 space-y-0.5">';
-      if (det.time) h += '<p>Hora: <span class="font-mono font-semibold text-white">' + esc(det.time) + '</span></p>';
-      if (det.distance) h += '<p>Distancia: <span class="font-mono font-semibold text-white">' + esc(det.distance) + '</span></p>';
-      h += '</div>';
-    }
-    h += '<p class="mt-2 text-[11px] text-neutral-500">Puedes cerrar esta ventana.</p></div></div>';
+      '<svg class="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+      '<div><p class="text-[14px] font-semibold text-emerald-200">Asistencia completa confirmada</p>' +
+      '<div class="mt-2 text-[12px] text-neutral-300 grid grid-cols-2 gap-2 pt-1.5 border-t border-emerald-800/40 font-mono">' +
+      '<div>Entrada: <strong class="text-white">' + esc(inT) + '</strong></div>' +
+      '<div>Salida: <strong class="text-white">' + esc(outT) + '</strong></div>' +
+      '</div>' +
+      '<p class="mt-2.5 text-[11px] text-emerald-400/90">Tu permanencia fue verificada exitosamente. Puedes cerrar esta ventana.</p>' +
+      '</div></div>';
     statusContainer.innerHTML = h;
   }
 

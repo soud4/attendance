@@ -223,24 +223,37 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                     </span>
                   </div>
 
-                  <div class="flex flex-wrap items-center justify-between gap-y-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
-                    <div class="flex items-center gap-2.5">
-                      <span class={`font-semibold ${att.distance_meters > (event.radius_meters * 0.8) ? "text-amber-400" : "text-emerald-400"}`}>
-                        {att.distance_meters}m
-                      </span>
-                      <span>&plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
+                  <div class="flex flex-col gap-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-neutral-500">Entrada:</span>
+                        <span class="text-neutral-200">
+                          {new Date(att.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-neutral-500">Salida:</span>
+                        {att.check_out_at ? (
+                          <span class="text-emerald-400 font-semibold">
+                            {new Date(att.check_out_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        ) : (
+                          <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
+                            En curso
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    <span class="text-[10px] text-neutral-500">
-                      {new Date(att.created_at).toLocaleString("es-PE", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
-                    </span>
+                    <div class="flex items-center justify-between text-[10px] text-neutral-500 pt-0.5">
+                      <span>{att.distance_meters}m &bull; &plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
+                      <span>
+                        {new Date(att.created_at).toLocaleDateString("es-PE", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -253,7 +266,8 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                   <tr>
                     <th scope="col" class="py-3 px-4">#</th>
                     <th scope="col" class="py-3 px-4">DNI</th>
-                    <th scope="col" class="py-3 px-4">Hora de Marcación</th>
+                    <th scope="col" class="py-3 px-4">Entrada</th>
+                    <th scope="col" class="py-3 px-4">Salida</th>
                     <th scope="col" class="py-3 px-4">Distancia al Centro</th>
                     <th scope="col" class="py-3 px-4">Precisión GPS</th>
                     <th scope="col" class="py-3 px-4">Método</th>
@@ -271,8 +285,24 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
-                          second: "2-digit",
                         })}
+                      </td>
+                      <td class="py-3 px-4 font-mono text-xs">
+                        {att.check_out_at ? (
+                          <span class="text-emerald-400 font-semibold">
+                            {new Date(att.check_out_at).toLocaleString("es-PE", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        ) : (
+                          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-950/60 text-amber-400 border border-amber-800/40">
+                            En curso
+                          </span>
+                        )}
                       </td>
                       <td class="py-3 px-4 font-mono text-xs">
                         <span class={`font-semibold ${att.distance_meters > (event.radius_meters * 0.8) ? "text-amber-400" : "text-emerald-400"}`}>

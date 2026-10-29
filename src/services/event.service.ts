@@ -5,6 +5,14 @@ import {
   InvalidCoordinatesError,
   InvalidRadiusError,
 } from "./errors";
+import {
+  MIN_RADIUS_METERS,
+  MAX_RADIUS_METERS,
+  DEFAULT_RADIUS_METERS,
+  EVENT_CODE_PREFIX,
+  EVENT_CODE_CHARS,
+  EVENT_CODE_RANDOM_LENGTH,
+} from "../config";
 
 export interface EventWithStats extends Event {
   attendee_count: number;
@@ -167,12 +175,11 @@ export class EventService {
    * Helper to generate a unique public code (e.g. ev-m8x2p4)
    */
   private static generatePublicCode(): string {
-    const chars = "abcdefghjkmnpqrstuvwxyz23456789";
     let random = "";
-    for (let i = 0; i < 6; i++) {
-      random += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < EVENT_CODE_RANDOM_LENGTH; i++) {
+      random += EVENT_CODE_CHARS.charAt(Math.floor(Math.random() * EVENT_CODE_CHARS.length));
     }
-    return `ev-${random}`;
+    return `${EVENT_CODE_PREFIX}${random}`;
   }
 
   /**
@@ -315,7 +322,7 @@ export class EventService {
       throw new InvalidCoordinatesError();
     }
 
-    if (input.radius_meters < 10 || input.radius_meters > 5000) {
+    if (input.radius_meters < MIN_RADIUS_METERS || input.radius_meters > MAX_RADIUS_METERS) {
       throw new InvalidRadiusError();
     }
 
@@ -412,7 +419,7 @@ export class EventService {
       throw new InvalidCoordinatesError();
     }
 
-    if (input.radius_meters < 10 || input.radius_meters > 5000) {
+    if (input.radius_meters < MIN_RADIUS_METERS || input.radius_meters > MAX_RADIUS_METERS) {
       throw new InvalidRadiusError();
     }
 

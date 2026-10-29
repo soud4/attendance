@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { readFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { env } from "../config/env";
 
 export interface User {
   id: number;
@@ -43,43 +44,106 @@ export interface Attendance {
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
+  check_out_at: string | null;
 }
 
-let dbInstance: Database | null = null;
+/**
+ * DatabaseConnection Singleton Manager
+ * Encapsulates the embedded SQLite lifecycle, PRAGMA configuration,
+ * and Prepared Statement caching for sub-microsecond query execution.
+ */
+export class DatabaseConnection {
+  private static instance: Database | null = null;
+  private static statementCache = new Map<string, any>();
 
-export function setDatabase(db: Database | null): void {
-  dbInstance = db;
-}
-
-export function getDatabase(dbPath: string = process.env.DATABASE_PATH || "data.sqlite"): Database {
-  if (dbInstance) return dbInstance;
-
-  const targetDir = dirname(dbPath);
-  if (targetDir && targetDir !== ".") {
-    mkdirSync(targetDir, { recursive: true });
+  /**
+   * Apply database configuration PRAGMAs cleanly in WAL mode
+   */
+  private static applyPragmas(db: Database): void {
+    db.run("PRAGMA foreign_keys = ON;");
+    db.run("PRAGMA journal_mode = WAL;");
+    db.run("PRAGMA synchronous = NORMAL;");
+    db.run("PRAGMA busy_timeout = 5000;");
   }
 
-  const db = new Database(dbPath, { create: true });
+  /**
+   * Get the singleton Database instance
+   */
+  public static getInstance(dbPath: string = env.DATABASE_PATH): Database {
+    if (this.instance) {
+      return this.instance;
+    }
 
-  // Apply performance & integrity pragmas
-  db.run("PRAGMA foreign_keys = ON;");
-  db.run("PRAGMA journal_mode = WAL;");
-  db.run("PRAGMA synchronous = NORMAL;");
-  db.run("PRAGMA busy_timeout = 5000;");
+    const targetDir = dirname(dbPath);
+    if (targetDir && targetDir !== ".") {
+      mkdirSync(targetDir, { recursive: true });
+    }
 
-  dbInstance = db;
-  return db;
+    const db = new Database(dbPath, { create: true });
+    this.applyPragmas(db);
+    this.instance = db;
+    return db;
+  }
+
+  /**
+   * Prepared Statement caching: avoids recompiling SQL bytecode on every invocation
+   */
+  public static prepare(sql: string): any {
+    const db = this.getInstance();
+    let stmt = this.statementCache.get(sql);
+    if (!stmt) {
+      stmt = db.prepare(sql);
+      this.statementCache.set(sql, stmt);
+    }
+    return stmt;
+  }
+
+  /**
+   * Explicitly set or swap instance (primarily used in automated unit tests)
+   */
+  public static setInstance(db: Database | null): void {
+    this.instance = db;
+    this.statementCache.clear();
+  }
+
+  /**
+   * Close connection and release cached statements
+   */
+  public static close(): void {
+    if (this.instance) {
+      this.instance.close();
+      this.instance = null;
+      this.statementCache.clear();
+    }
+  }
+}
+
+// Backward-compatible exports
+export function getDatabase(dbPath?: string): Database {
+  return DatabaseConnection.getInstance(dbPath);
+}
+
+export function setDatabase(db: Database | null): void {
+  DatabaseConnection.setInstance(db);
+}
+
+export function closeDatabase(): void {
+  DatabaseConnection.close();
 }
 
 export function initSchema(db: Database): void {
   const schemaPath = join(__dirname, "schema.sql");
   const schemaSql = readFileSync(schemaPath, "utf-8");
   db.exec(schemaSql);
-}
 
-export function closeDatabase(): void {
-  if (dbInstance) {
-    dbInstance.close();
-    dbInstance = null;
+  // Safe migration: ensure check_out_at column exists in existing database files
+  try {
+    const cols = db.prepare("PRAGMA table_info(attendances);").all() as { name: string }[];
+    const hasCheckOut = cols.some((c) => c.name === "check_out_at");
+    if (!hasCheckOut) {
+      db.exec("ALTER TABLE attendances ADD COLUMN check_out_at TEXT;");
+    }
+  } catch {
+    // Ignore if table does not exist yet
   }
 }

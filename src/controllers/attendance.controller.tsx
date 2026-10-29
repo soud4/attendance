@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import { AttendanceService } from "../services/attendance.service";
 import { EventService, isEventExpired } from "../services/event.service";
 import { AttendanceView } from "../views/asistencia";
@@ -31,7 +32,14 @@ export class AttendanceController {
       );
     }
 
-    return c.html(<AttendanceView event={event} />);
+    // Check if attendee already marked check-in via cookie
+    const cookieDni = getCookie(c, `att_${code}`);
+    let initialAttendance = null;
+    if (cookieDni && /^\d{8}$/.test(cookieDni)) {
+      initialAttendance = AttendanceService.getByEventAndDni(event.id, cookieDni);
+    }
+
+    return c.html(<AttendanceView event={event} initialAttendance={initialAttendance} />);
   }
 
   /**
@@ -103,14 +111,30 @@ export class AttendanceController {
         userAgent,
       });
 
+      // If check-in was registered, persist cookie for seamless departure checkout
+      if (result.action === "CHECK_IN") {
+        setCookie(c, `att_${code}`, result.dni, {
+          path: "/",
+          maxAge: 86400 * 2, // 48 hours
+          sameSite: "Lax",
+        });
+      }
+
       return c.json({
         success: true,
-        message: "Asistencia registrada correctamente",
+        action: result.action,
+        message:
+          result.action === "CHECK_IN"
+            ? "Entrada registrada correctamente"
+            : "Salida registrada correctamente",
         details: {
           attendance_id: result.attendanceId,
           dni: result.dni,
+          action: result.action,
           distance_meters: result.distanceMeters,
           recorded_at: result.recordedAt,
+          check_in_at: result.checkInAt || result.recordedAt,
+          check_out_at: result.checkOutAt || (result.action === "CHECK_OUT" ? result.recordedAt : null),
           event_title: result.event.title,
         },
       });

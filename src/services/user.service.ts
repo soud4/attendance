@@ -6,6 +6,12 @@ import {
   UserNotFoundError,
   ConflictError,
 } from "./errors";
+import {
+  DNI_REGEX,
+  SUPER_ADMIN_IDENTIFIER,
+  MIN_PASSWORD_LENGTH,
+  MIN_FULL_NAME_LENGTH,
+} from "../config";
 
 export interface CreateUserInput {
   identifier: string; // 8-digit DNI
@@ -81,16 +87,16 @@ export class UserService {
     const password = String(input.password || "");
     const role = input.role || "STAFF";
 
-    if (!/^\d{8}$/.test(dni)) {
+    if (!DNI_REGEX.test(dni)) {
       throw new InvalidDniError("El DNI debe tener exactamente 8 dígitos numéricos.");
     }
 
-    if (!fullName || fullName.length < 3) {
-      throw new ValidationError("Por favor ingresa el nombre completo del usuario (mínimo 3 caracteres).");
+    if (!fullName || fullName.length < MIN_FULL_NAME_LENGTH) {
+      throw new ValidationError(`Por favor ingresa el nombre completo del usuario (mínimo ${MIN_FULL_NAME_LENGTH} caracteres).`);
     }
 
-    if (!password || password.length < 6) {
-      throw new ValidationError("La contraseña inicial debe tener al menos 6 caracteres.");
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      throw new ValidationError(`La contraseña inicial debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
     }
 
     const existing = this.getByIdentifier(dni);
@@ -160,7 +166,7 @@ export class UserService {
     }
 
     // Protect initial admin 00000000 from accidental deletion
-    if (user.identifier === "00000000") {
+    if (user.identifier === SUPER_ADMIN_IDENTIFIER) {
       throw new ValidationError("No se puede eliminar la cuenta del Administrador Principal.");
     }
 

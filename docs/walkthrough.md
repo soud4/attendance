@@ -38,6 +38,28 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
 - **Paginación por Cursores**: Parámetros opcionales `{ cursor, limit }` en `EventService`, `AttendanceService` y `UserService` para consultas escalables con `WHERE id < $cursor ORDER BY id DESC LIMIT $limit`.
 - **In-Memory Code Cache**: `EventService.codeExists(code)` verifica códigos públicos en **O(1)** (< 10 nanosegundos) usando un `Set<string>` en memoria RAM con autoinvalidación inteligente ante cambios de base de datos, evitando consultas SQL repetitivas en rutas 404 y polling de clientes.
 
+#### F. Conexión Singleton SQLite y Centralización de Constantes y Entorno
+- **Singleton DatabaseConnection**: Implementado en [`src/db/index.ts`](file:///home/souda/Laboratory/bandera-asistencia/src/db/index.ts) con configuración PRAGMA aislada (WAL mode, busy_timeout de 5000ms) y caché de Prepared Statements (`DatabaseConnection.prepare`) para evitar recompilación de bytecode SQL en peticiones HTTP recurrentes.
+- **Configuración Centralizada**: Archivos `.env.example`, `.env`, [`src/config/constants.ts`](file:///home/souda/Laboratory/bandera-asistencia/src/config/constants.ts) y [`src/config/env.ts`](file:///home/souda/Laboratory/bandera-asistencia/src/config/env.ts), eliminando valores mágicos (DNI regex, radio terrestre, límites de paginación, puerto, JWT secret) en todo el código.
+
+#### G. Modal de Edición Minimalista Fullscreen en Móvil y View Transitions API
+- **Modal de Edición Fullscreen**: En [`src/views/admin/event_edit_view.tsx`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/event_edit_view.tsx), se eliminaron textos redundantes y párrafos sobreexplicativos. En móvil, ocupa el 100% de la pantalla (`fixed inset-0 z-50 w-full h-full bg-neutral-950 p-4`) brindando una experiencia nativa sin desbordes.
+- **View Transitions API**: Habilitado en los layouts con `<meta name="view-transition" content="same-origin" />` y CSS `@view-transition { navigation: auto; }`, permitiendo transiciones suaves entre el listado y la edición de eventos sin parpadeos de pantalla.
+
+#### H. Control de Permanencia: Doble Marcación (Check-in & Check-out)
+- **Problema Solucionado**: Asistentes que marcan su presencia y se van de inmediato del evento.
+- **Flujo en Dos Pasos**:
+  1. **Entrada (Check-in)**: Registra la hora de llegada, geocerca GPS y emite la cookie segura `att_<code_evento>=<dni>`.
+  2. **Salida (Check-out)**: Al pulsar **"Marcar salida"**, valida que el asistente continúe físicamente en el radio del evento y realiza un `UPDATE attendances SET check_out_at = datetime('now')`.
+  3. **Tercer Intento**: Si el asistente ya completó tanto entrada como salida, el sistema responde informando que la asistencia ya concluyó (código 409).
+- **Interfaz Reactiva**:
+  - Estado Inicial: DNI activo y botón azul *"Registrar asistencia"*.
+  - Tras Entrada: DNI bloqueado, aviso ámbar con hora de ingreso y botón verde esmeralda *"Marcar salida"*. Si el celular recarga la página, la cookie rehidrata inmediatamente el botón de salida.
+  - Tras Salida: Tarjeta con doble check esmeralda, hora de entrada, hora de salida y confirmación de permanencia.
+- **Panel Administrativo y Exportación CSV**:
+  - En [`AttendancesView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/attendances_view.tsx) y [`EventDetailView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/event_detail_view.tsx), se visualizan columnas separadas de **Entrada** y **Salida** (o badge *"En curso"* si aún no marcó salida).
+  - La exportación CSV incluye la columna `Fecha_Hora_Salida`.
+
 ---
 
 ### 3. Verificación de Calidad
@@ -45,25 +67,26 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
 ```bash
 # Verificación de TypeScript
 $ bun run typecheck
-✓ No type errors in 43 files [95.15ms]
+✓ No type errors in 47 files [169.88ms]
 
 # Compilación de estilos
 $ bun run build:css
 ≈ tailwindcss v4.3.3
-Done in 85ms
+Done in 180ms
 
 # Suite Completa de Tests
 $ bun test
- 86 pass
+ 92 pass
  0 fail
- 334 expect() calls
-Ran 86 tests across 7 files. [5.38s]
+ 375 expect() calls
+Ran 92 tests across 8 files. [12.55s]
 ```
 
+- `tests/attendance_checkout.test.ts`: 6 tests (Flujo completo Check-in, Check-out, geocerca de salida, cookie y rehidratación).
+- `tests/attendance.test.ts`: 8 tests (Validación Haversine, formato DNI, check-in/check-out y unicidad).
 - `tests/mobile_and_pagination.test.ts`: 8 tests (Tarjetas comprimidas, alineación y cursores).
 - `tests/auto_close_map.test.ts`: 17 tests (Auto-cierre, proxy Nominatim, fechas y badges).
-- `tests/admin_crud.test.ts`: 17 tests (CRUD de eventos, coordinadores, vistas duales y CSV).
+- `tests/admin_crud.test.ts`: 17 tests (CRUD de eventos, coordinadores, vistas duales y CSV con horas de salida).
 - `tests/errors.test.ts`: 16 tests (404, 401, 403, 500 y negociación de contenido).
 - `tests/admin.test.ts`: 14 tests (Autenticación y sesiones Argon2id/JWT).
-- `tests/attendance.test.ts`: 8 tests (Validación Haversine y unicidad de DNI).
-- `tests/db.test.ts`: 6 tests (Esquemas e integridad SQLite).
+- `tests/db.test.ts`: 6 tests (Esquemas e integridad SQLite con columna `check_out_at`).

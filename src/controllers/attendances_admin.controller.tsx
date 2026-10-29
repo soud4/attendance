@@ -59,6 +59,7 @@ export class AttendancesAdminController {
       "Precision_Metros",
       "Metodo",
       "Direccion_IP",
+      "Hora_Salida",
     ];
 
     const escapeCsv = (val: string | number | null | undefined): string => {
@@ -79,6 +80,7 @@ export class AttendancesAdminController {
       escapeCsv(a.accuracy_meters),
       escapeCsv(a.method),
       escapeCsv(a.ip_address),
+      escapeCsv(a.check_out_at || "En curso"),
     ]);
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");

@@ -38,36 +38,36 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
   }
 
   return (
-    <div class="max-w-3xl mx-auto">
-      {/* Breadcrumb / Back Navigation */}
-      <div class="mb-5 flex items-center justify-between">
-        <a href="/admin" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span>Volver a Eventos</span>
-        </a>
-        <span class="text-xs text-neutral-500 font-mono">ID: {event.id} &bull; {event.public_code}</span>
+    <div class="fixed inset-0 z-50 w-full h-full bg-neutral-950 p-4 sm:p-6 overflow-y-auto md:relative md:inset-auto md:max-w-3xl md:mx-auto md:p-0 md:bg-transparent md:h-auto">
+      {/* Header bar with Back Navigation */}
+      <div class="mb-4 flex items-center justify-between pb-3 border-b border-neutral-800">
+        <div class="flex items-center gap-3">
+          <a
+            href="/admin"
+            class="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+            title="Volver a Eventos"
+            aria-label="Volver"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </a>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Editar Evento</h1>
+            <span class="text-[11px] text-neutral-500 font-mono">{event.public_code}</span>
+          </div>
+        </div>
+        <span class={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
+          event.status === "OPEN"
+            ? "bg-emerald-950/80 text-emerald-400 border-emerald-800/50"
+            : "bg-neutral-800 text-neutral-400 border-neutral-700/50"
+        }`}>
+          {event.status === "OPEN" ? "Abierto" : "Cerrado"}
+        </span>
       </div>
 
       {/* Main Card */}
-      <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl shadow-xl p-6 sm:p-8">
-        <div class="border-b border-neutral-800 pb-5 mb-6 flex items-start justify-between">
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Editar Evento</h1>
-            <p class="text-xs text-neutral-400 mt-1">
-              Modifica los detalles, ubicación en el mapa interactivo y horario de asistencia
-            </p>
-          </div>
-          <span class={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
-            event.status === "OPEN"
-              ? "bg-emerald-950/80 text-emerald-400 border-emerald-800/50"
-              : "bg-neutral-800 text-neutral-400 border-neutral-700/50"
-          }`}>
-            {event.status === "OPEN" ? "Actualmente Abierto" : "Actualmente Cerrado"}
-          </span>
-        </div>
-
+      <div class="bg-neutral-900 border-0 md:border border-neutral-800/80 rounded-none md:rounded-2xl shadow-none md:shadow-xl p-3 sm:p-8 min-h-[calc(100vh-5rem)] md:min-h-0">
         {errorMessage && (
           <div class="mb-5 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-200 text-xs flex items-start gap-2.5">
             <svg class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -79,11 +79,11 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
           </div>
         )}
 
-        <form id="editEventForm" action={`/admin/events/${event.id}/edit`} method="post" class="space-y-6">
+        <form id="editEventForm" action={`/admin/events/${event.id}/edit`} method="post" class="space-y-5">
           {/* Título */}
           <div>
             <label for="title" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Título del Evento <span class="text-blue-400">*</span>
+              Título <span class="text-blue-400">*</span>
             </label>
             <input
               type="text"
@@ -92,7 +92,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
               required
               placeholder="Ej: Conferencia Anual 2026"
               value={event.title}
-              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-3 px-4 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/15 focus:outline-none transition-all"
+              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3.5 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/15 focus:outline-none transition-all"
             />
           </div>
 
@@ -100,7 +100,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
           <div>
             <div class="flex items-center justify-between mb-1.5">
               <label for="location_name" class="block text-xs font-semibold text-neutral-300">
-                Nombre de la Sede o Lugar <span class="text-blue-400">*</span>
+                Lugar / Sede <span class="text-blue-400">*</span>
               </label>
               <button
                 type="button"
@@ -111,7 +111,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>Consultar nombre en OSM</span>
+                <span>Buscar en OSM</span>
               </button>
             </div>
             <input
@@ -121,33 +121,27 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
               required
               placeholder="Ej: Auditorio Central"
               value={event.location_name || ""}
-              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-3 px-4 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/15 focus:outline-none transition-all"
+              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3.5 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/15 focus:outline-none transition-all"
             />
-            <div id="osmStatus" class="mt-1 text-[11px] text-emerald-400 font-medium min-h-[16px]"></div>
+            <div id="osmStatus" class="mt-1 text-[11px] text-emerald-400 font-medium min-h-[14px]"></div>
           </div>
 
-          {/* Mapa Interactivo (Leaflet + OpenStreetMap) */}
-          <div class="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3.5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <span class="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
-                  <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>Mapa de Ubicación y Cobertura (OpenStreetMap)</span>
-                </span>
-                <p class="text-[11px] text-neutral-500 mt-0.5">
-                  Arrastra el marcador o haz clic en el mapa para ajustar las coordenadas.
-                </p>
-              </div>
+          {/* Mapa Interactivo Leaflet */}
+          <div class="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Ubicación GPS</span>
+              </span>
 
               <div class="flex items-center gap-2">
-                {/* Botón GPS actual */}
                 <button
                   type="button"
                   id="geoCaptureBtn"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all cursor-pointer active:scale-95"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all cursor-pointer active:scale-95"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -155,14 +149,13 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                   <span id="geoText">Mi ubicación</span>
                 </button>
 
-                {/* Enlace dinámico a Google Maps */}
                 <a
                   id="gmapsBtn"
                   href={`https://www.google.com/maps?q=${currentLat},${currentLon}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-neutral-300 text-xs font-medium transition-all cursor-pointer"
-                  title="Abrir punto en Google Maps"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-neutral-300 text-xs font-medium transition-all cursor-pointer"
+                  title="Abrir en Google Maps"
                 >
                   <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
@@ -176,10 +169,10 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
             </div>
 
             {/* Contenedor del Mapa Leaflet */}
-            <div id="eventMap" class="w-full h-72 sm:h-80 rounded-xl overflow-hidden border border-neutral-700/80 relative z-0"></div>
+            <div id="eventMap" class="w-full h-64 sm:h-72 rounded-xl overflow-hidden border border-neutral-700/80 relative z-0"></div>
 
             {/* Coordenadas Latitud y Longitud */}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div class="grid grid-cols-2 gap-2.5 pt-0.5">
               <div>
                 <label for="latitude" class="block text-[11px] font-semibold text-neutral-400 mb-1">
                   Latitud
@@ -191,7 +184,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                   name="latitude"
                   required
                   value={currentLat}
-                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
+                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-xs py-2 px-2.5 focus:border-blue-500/80 focus:outline-none"
                 />
               </div>
               <div>
@@ -205,7 +198,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                   name="longitude"
                   required
                   value={currentLon}
-                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
+                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-xs py-2 px-2.5 focus:border-blue-500/80 focus:outline-none"
                 />
               </div>
             </div>
@@ -214,9 +207,9 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
           {/* Radio de Cobertura */}
           <div>
             <label for="radius_meters" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Radio de Cobertura Permitido (metros) <span class="text-blue-400">*</span>
+              Radio (metros) <span class="text-blue-400">*</span>
             </label>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 flex-wrap">
               <input
                 type="number"
                 id="radius_meters"
@@ -225,35 +218,31 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                 max={5000}
                 required
                 value={currentRadius}
-                class="w-32 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm py-2.5 px-3 focus:border-blue-500/80 focus:outline-none"
+                class="w-28 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
               />
               <div class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" onclick="setRadiusPreset(50)" class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">50m</button>
-                <button type="button" onclick="setRadiusPreset(100)" class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">100m</button>
-                <button type="button" onclick="setRadiusPreset(150)" class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">150m</button>
-                <button type="button" onclick="setRadiusPreset(200)" class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">200m</button>
-                <button type="button" onclick="setRadiusPreset(500)" class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">500m</button>
+                <button type="button" onclick="setRadiusPreset(50)" class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">50m</button>
+                <button type="button" onclick="setRadiusPreset(100)" class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">100m</button>
+                <button type="button" onclick="setRadiusPreset(200)" class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">200m</button>
+                <button type="button" onclick="setRadiusPreset(500)" class="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer">500m</button>
               </div>
             </div>
-            <p class="text-[11px] text-neutral-500 mt-1">
-              Distancia máxima desde el centro donde los asistentes podrán registrarse.
-            </p>
           </div>
 
-          {/* Selectores Claros de Fecha y Horarios */}
-          <div class="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3">
+          {/* Fecha y Horarios */}
+          <div class="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3">
             <span class="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
               <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span>Fecha del Evento y Horario de Asistencia</span>
+              <span>Horario</span>
             </span>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {/* Fecha */}
               <div>
                 <label for="event_date" class="block text-[11px] font-semibold text-neutral-400 mb-1">
-                  Fecha de Realización <span class="text-blue-400">*</span>
+                  Fecha <span class="text-blue-400">*</span>
                 </label>
                 <input
                   type="date"
@@ -261,28 +250,28 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                   name="event_date"
                   required
                   value={eventDate}
-                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
+                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs py-2 px-2.5 focus:border-blue-500/80 focus:outline-none"
                 />
               </div>
 
               {/* Hora Apertura */}
               <div>
                 <label for="start_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">
-                  Hora de Apertura
+                  Apertura
                 </label>
                 <input
                   type="time"
                   id="start_time"
                   name="start_time"
                   value={startTime}
-                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
+                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs py-2 px-2.5 focus:border-blue-500/80 focus:outline-none"
                 />
               </div>
 
               {/* Hora Cierre */}
               <div>
                 <label for="end_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">
-                  Hora de Cierre Automático <span class="text-amber-400">*</span>
+                  Cierre automático <span class="text-amber-400">*</span>
                 </label>
                 <input
                   type="time"
@@ -290,7 +279,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
                   name="end_time"
                   required
                   value={endTime}
-                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
+                  class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs py-2 px-2.5 focus:border-blue-500/80 focus:outline-none"
                 />
               </div>
             </div>
@@ -303,15 +292,15 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
           {/* Estado del Evento */}
           <div>
             <label for="status" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Estado de Asistencia
+              Estado
             </label>
             <select
               id="status"
               name="status"
-              class="w-full sm:w-64 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3 focus:border-blue-500/80 focus:outline-none"
+              class="w-full sm:w-56 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2 px-3 focus:border-blue-500/80 focus:outline-none"
             >
-              <option value="OPEN" selected={event.status === "OPEN"}>Abierto (Permite marcas)</option>
-              <option value="CLOSED" selected={event.status === "CLOSED"}>Cerrado (Registro bloqueado)</option>
+              <option value="OPEN" selected={event.status === "OPEN"}>Abierto</option>
+              <option value="CLOSED" selected={event.status === "CLOSED"}>Cerrado</option>
             </select>
           </div>
 
