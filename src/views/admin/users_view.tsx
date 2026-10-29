@@ -54,7 +54,7 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
           {/* DNI */}
           <div>
             <label for="identifier" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              DNI (8 dígitos) <span class="text-blue-400">*</span>
+              DNI <span class="text-blue-400">*</span>
             </label>
             <input
               type="text"
@@ -64,14 +64,14 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
               maxlength={8}
               pattern="\d{8}"
               placeholder="72849102"
-              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm py-2.5 px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
+              class="w-full h-10 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white font-mono text-sm px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
             />
           </div>
 
           {/* Nombre Completo */}
           <div>
             <label for="full_name" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Nombre y Apellidos <span class="text-blue-400">*</span>
+              Nombre completo <span class="text-blue-400">*</span>
             </label>
             <input
               type="text"
@@ -79,14 +79,14 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
               name="full_name"
               required
               placeholder="Ej: Carlos Mendoza Ramos"
-              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
+              class="w-full h-10 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
             />
           </div>
 
-          {/* Contraseña Inicial */}
+          {/* Contraseña */}
           <div>
             <label for="password" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Contraseña Inicial <span class="text-blue-400">*</span>
+              Contraseña <span class="text-blue-400">*</span>
             </label>
             <input
               type="password"
@@ -95,12 +95,12 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
               required
               minlength={6}
               placeholder="Mínimo 6 caracteres"
-              class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
+              class="w-full h-10 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm px-3 placeholder:text-neutral-600 focus:border-blue-500/80 focus:outline-none"
             />
           </div>
 
-          {/* Rol y Botón Submit */}
-          <div class="flex items-center gap-2">
+          {/* Rol y Botón Submit perfectamente alineados a la misma altura */}
+          <div class="flex items-end gap-2">
             <div class="w-1/2">
               <label for="role" class="block text-xs font-semibold text-neutral-300 mb-1.5">
                 Rol
@@ -108,7 +108,7 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
               <select
                 id="role"
                 name="role"
-                class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs py-2.5 px-2.5 focus:border-blue-500/80 focus:outline-none"
+                class="w-full h-10 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs px-2.5 focus:border-blue-500/80 focus:outline-none"
               >
                 <option value="STAFF" selected>STAFF</option>
                 <option value="ADMIN">ADMIN</option>
@@ -118,49 +118,141 @@ export function UsersView({ users, noticeMessage, errorMessage }: UsersViewProps
             <div class="w-1/2">
               <button
                 type="submit"
-                class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+                class="w-full h-10 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
               >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Crear</span>
+                <span>+ Crear</span>
               </button>
             </div>
           </div>
         </form>
       </div>
 
-      {/* Users Table Card */}
+      {/* Coordinators List: Compressed Cards on Mobile, Full Table on Desktop */}
       <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
         <div class="px-5 py-4 border-b border-neutral-800 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <h2 class="text-sm font-bold text-white tracking-tight">Usuarios Registrados en el Sistema</h2>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-mono">
-              {users.length}
-            </span>
-          </div>
-          <span class="text-xs text-neutral-500 font-mono">Seguridad Argon2id activa</span>
+          <h2 class="text-sm font-bold text-white tracking-tight">Personal Registrado</h2>
+          <span class="text-xs font-mono text-neutral-400">Total: {users.length}</span>
         </div>
 
-        <div class="overflow-x-auto">
+        {/* Mobile View: Compressed Cards (block md:hidden) */}
+        <div class="block md:hidden divide-y divide-neutral-800/70">
+          {users.map((u) => {
+            const isSuperAdmin = u.identifier === "00000000";
+            const isActive = u.status === "ACTIVE";
+
+            return (
+              <div class="p-4 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs font-bold text-white tracking-wider">{u.identifier}</span>
+                    <span class={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                      u.role === "ADMIN"
+                        ? "bg-purple-950/60 text-purple-300 border-purple-800/50"
+                        : "bg-blue-950/60 text-blue-300 border-blue-800/50"
+                    }`}>
+                      {u.role}
+                    </span>
+                  </div>
+
+                  {isActive ? (
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>Activo</span>
+                    </span>
+                  ) : (
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-800 text-neutral-400 border border-neutral-700/50">
+                      <span class="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                      <span>Inactivo</span>
+                    </span>
+                  )}
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                  <div class="font-medium text-white flex items-center gap-1.5">
+                    <span>{u.full_name}</span>
+                    {isSuperAdmin && (
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800/40 font-semibold">
+                        Principal
+                      </span>
+                    )}
+                  </div>
+
+                  <span class="font-mono text-neutral-500 text-[10px]">
+                    {new Date(u.created_at).toLocaleDateString("es-PE", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1.5 border-t border-neutral-800/50">
+                  {/* Toggle Status */}
+                  <form action={`/admin/users/${u.id}/toggle`} method="post" class="inline">
+                    <button
+                      type="submit"
+                      disabled={isSuperAdmin}
+                      title={isSuperAdmin ? "No se puede desactivar el administrador principal" : isActive ? "Desactivar acceso" : "Activar acceso"}
+                      class={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        isSuperAdmin
+                          ? "opacity-30 cursor-not-allowed bg-neutral-800 text-neutral-500"
+                          : isActive
+                          ? "bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 border border-amber-800/40"
+                          : "bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/40"
+                      }`}
+                    >
+                      {isActive ? "Desactivar" : "Activar"}
+                    </button>
+                  </form>
+
+                  {/* Delete User */}
+                  {!isSuperAdmin && (
+                    <form
+                      action={`/admin/users/${u.id}/delete`}
+                      method="post"
+                      class="inline"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar este usuario coordinador?');"
+                    >
+                      <button
+                        type="submit"
+                        title="Eliminar usuario"
+                        class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 transition-colors cursor-pointer"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop View: Full Table (hidden md:block) */}
+        <div class="hidden md:block overflow-x-auto">
           <table class="w-full text-left text-xs text-neutral-300">
             <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
               <tr>
-                <th scope="col" class="py-3 px-4">DNI</th>
-                <th scope="col" class="py-3 px-4">Nombre Completo</th>
-                <th scope="col" class="py-3 px-4">Rol</th>
-                <th scope="col" class="py-3 px-4">Estado</th>
-                <th scope="col" class="py-3 px-4">Fecha Alta</th>
-                <th scope="col" class="py-3 px-4 text-right">Acciones</th>
+                <th scope="col" class="py-3.5 px-4">DNI</th>
+                <th scope="col" class="py-3.5 px-4">Nombre y Apellidos</th>
+                <th scope="col" class="py-3.5 px-4">Rol</th>
+                <th scope="col" class="py-3.5 px-4">Estado</th>
+                <th scope="col" class="py-3.5 px-4">Fecha de Alta</th>
+                <th scope="col" class="py-3.5 px-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-neutral-800/60">
+            <tbody class="divide-y divide-neutral-800/70">
               {users.map((u) => {
-                const isActive = u.status === "ACTIVE";
                 const isSuperAdmin = u.identifier === "00000000";
+                const isActive = u.status === "ACTIVE";
 
                 return (
-                  <tr class="hover:bg-neutral-800/30 transition-colors">
+                  <tr class="hover:bg-neutral-800/40 transition-colors">
                     <td class="py-3.5 px-4 font-mono font-bold text-white text-xs tracking-wider">
                       {u.identifier}
                     </td>

@@ -104,7 +104,7 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
         </div>
       </div>
 
-      {/* Grid: Event Parameters & QR Code Link Card */}
+      {/* Main Stats: Parameters & QR Code Link Card */}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Metric Cards (2 cols) */}
         <div class="lg:col-span-2 space-y-4">
@@ -190,7 +190,7 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
         </div>
       </div>
 
-      {/* Registered Attendances Table */}
+      {/* Registered Attendances: Compressed Cards on Mobile, Full Table on Desktop */}
       <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
         <div class="px-5 py-4 border-b border-neutral-800 flex items-center justify-between">
           <div>
@@ -208,24 +208,30 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
             <span>No se han registrado asistencias para este evento aún.</span>
           </div>
         ) : (
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-neutral-300">
-              <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
-                <tr>
-                  <th scope="col" class="py-3 px-4">#</th>
-                  <th scope="col" class="py-3 px-4">DNI</th>
-                  <th scope="col" class="py-3 px-4">Hora de Marcación</th>
-                  <th scope="col" class="py-3 px-4">Distancia al Centro</th>
-                  <th scope="col" class="py-3 px-4">Precisión GPS</th>
-                  <th scope="col" class="py-3 px-4">Método</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-neutral-800/60">
-                {attendances.map((att, idx) => (
-                  <tr class="hover:bg-neutral-800/30 transition-colors">
-                    <td class="py-3 px-4 font-mono text-neutral-500 text-[11px]">{idx + 1}</td>
-                    <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider">{att.dni}</td>
-                    <td class="py-3 px-4 font-mono text-neutral-300 text-xs">
+          <div>
+            {/* Mobile View: Compressed Cards (block md:hidden) */}
+            <div class="block md:hidden divide-y divide-neutral-800/60">
+              {attendances.map((att, idx) => (
+                <div class="p-3.5 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-neutral-500 text-[11px]">#{idx + 1}</span>
+                      <span class="font-mono font-bold text-white text-xs tracking-wider">{att.dni}</span>
+                    </div>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                      {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
+                    </span>
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-y-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
+                    <div class="flex items-center gap-2.5">
+                      <span class={`font-semibold ${att.distance_meters > (event.radius_meters * 0.8) ? "text-amber-400" : "text-emerald-400"}`}>
+                        {att.distance_meters}m
+                      </span>
+                      <span>&plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
+                    </div>
+
+                    <span class="text-[10px] text-neutral-500">
                       {new Date(att.created_at).toLocaleString("es-PE", {
                         day: "2-digit",
                         month: "2-digit",
@@ -234,24 +240,58 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                         minute: "2-digit",
                         second: "2-digit",
                       })}
-                    </td>
-                    <td class="py-3 px-4 font-mono text-xs">
-                      <span class={`font-semibold ${att.distance_meters > (event.radius_meters * 0.8) ? "text-amber-400" : "text-emerald-400"}`}>
-                        {att.distance_meters}m
-                      </span>
-                    </td>
-                    <td class="py-3 px-4 font-mono text-neutral-400 text-xs">
-                      &plusmn;{Math.round(att.accuracy_meters)}m
-                    </td>
-                    <td class="py-3 px-4">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
-                        {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
-                      </span>
-                    </td>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Full Table (hidden md:block) */}
+            <div class="hidden md:block overflow-x-auto">
+              <table class="w-full text-left text-xs text-neutral-300">
+                <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
+                  <tr>
+                    <th scope="col" class="py-3 px-4">#</th>
+                    <th scope="col" class="py-3 px-4">DNI</th>
+                    <th scope="col" class="py-3 px-4">Hora de Marcación</th>
+                    <th scope="col" class="py-3 px-4">Distancia al Centro</th>
+                    <th scope="col" class="py-3 px-4">Precisión GPS</th>
+                    <th scope="col" class="py-3 px-4">Método</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody class="divide-y divide-neutral-800/60">
+                  {attendances.map((att, idx) => (
+                    <tr class="hover:bg-neutral-800/30 transition-colors">
+                      <td class="py-3 px-4 font-mono text-neutral-500 text-[11px]">{idx + 1}</td>
+                      <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider">{att.dni}</td>
+                      <td class="py-3 px-4 font-mono text-neutral-300 text-xs">
+                        {new Date(att.created_at).toLocaleString("es-PE", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </td>
+                      <td class="py-3 px-4 font-mono text-xs">
+                        <span class={`font-semibold ${att.distance_meters > (event.radius_meters * 0.8) ? "text-amber-400" : "text-emerald-400"}`}>
+                          {att.distance_meters}m
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 font-mono text-neutral-400 text-xs">
+                        &plusmn;{Math.round(att.accuracy_meters)}m
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                          {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -127,6 +127,11 @@ export function checkAutoClose<T extends Event>(event: T): T {
   return event;
 }
 
+export interface EventPaginationOptions {
+  cursor?: number | null;
+  limit?: number | null;
+}
+
 export class EventService {
   public static isEventExpired = isEventExpired;
   public static checkAutoClose = checkAutoClose;
@@ -144,24 +149,44 @@ export class EventService {
   }
 
   /**
-   * List all events ordered by newest first with attendee counts and auto-close check
+   * List all events ordered by newest first with attendee counts, supporting optional cursor pagination and auto-close check
    */
-  public static getAllWithStats(): EventWithStats[] {
+  public static getAllWithStats(options?: EventPaginationOptions): EventWithStats[] {
     const db = getDatabase();
-    const events = db
-      .prepare(`
-        SELECT 
-          e.*,
-          (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id) as attendee_count
-        FROM events e
-        ORDER BY e.id DESC
-      `)
-      .all() as EventWithStats[];
+    let query = `
+      SELECT 
+        e.*,
+        (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id) as attendee_count
+      FROM events e
+    `;
+    const params: Record<string, any> = {};
 
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " WHERE e.id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY e.id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    const events = db.prepare(query).all(params) as EventWithStats[];
     return events.map((e) => {
       const updated = checkAutoClose(e);
       return { ...e, ...updated, attendee_count: e.attendee_count };
     });
+  }
+
+  /**
+   * Total count of events
+   */
+  public static getTotalCount(): number {
+    const db = getDatabase();
+    const res = db.prepare("SELECT COUNT(*) as count FROM events").get() as { count: number };
+    return res?.count ?? 0;
   }
 
   /**
@@ -180,7 +205,10 @@ export class EventService {
   /**
    * Get an event with its full list of registered attendances and auto-close check
    */
-  public static getWithAttendances(id: number): { event: EventWithStats; attendances: Attendance[] } {
+  public static getWithAttendances(
+    id: number,
+    options?: EventPaginationOptions
+  ): { event: EventWithStats; attendances: Attendance[] } {
     const db = getDatabase();
     let event = db
       .prepare(`
@@ -198,13 +226,22 @@ export class EventService {
 
     event = { ...event, ...checkAutoClose(event) };
 
-    const attendances = db
-      .prepare(`
-        SELECT * FROM attendances 
-        WHERE event_id = $id 
-        ORDER BY id DESC
-      `)
-      .all({ $id: id }) as Attendance[];
+    let query = "SELECT * FROM attendances WHERE event_id = $id";
+    const params: Record<string, any> = { $id: id };
+
+    if (options?.cursor != null && !isNaN(options.cursor)) {
+      query += " AND id < $cursor";
+      params.$cursor = Number(options.cursor);
+    }
+
+    query += " ORDER BY id DESC";
+
+    if (options?.limit != null && options.limit > 0) {
+      query += " LIMIT $limit";
+      params.$limit = Number(options.limit);
+    }
+
+    const attendances = db.prepare(query).all(params) as Attendance[];
 
     return { event, attendances };
   }

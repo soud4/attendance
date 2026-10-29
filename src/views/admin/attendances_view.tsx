@@ -2,10 +2,21 @@ import type { AttendanceWithEvent } from "../../services/attendance.service";
 
 interface AttendancesViewProps {
   attendances: AttendanceWithEvent[];
+  nextCursor?: number | null;
+  currentCursor?: number;
+  limit?: number;
+  totalCount?: number;
 }
 
-export function AttendancesView({ attendances }: AttendancesViewProps) {
-  const totalAttendances = attendances.length;
+export function AttendancesView({
+  attendances,
+  nextCursor,
+  currentCursor,
+  limit,
+  totalCount,
+}: AttendancesViewProps) {
+  const displayedCount = attendances.length;
+  const overallCount = totalCount ?? displayedCount;
 
   return (
     <div class="space-y-6">
@@ -50,12 +61,12 @@ export function AttendancesView({ attendances }: AttendancesViewProps) {
         <div class="text-xs text-neutral-400 font-mono flex items-center gap-2">
           <span>Total de marcaciones:</span>
           <span class="font-bold text-white bg-neutral-800 px-2 py-0.5 rounded-lg border border-neutral-700/60">
-            {totalAttendances}
+            {overallCount}
           </span>
         </div>
       </div>
 
-      {/* Attendances Table */}
+      {/* Attendances Container: Mobile Compressed Cards + Desktop Full Table */}
       <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
         {attendances.length === 0 ? (
           <div class="p-12 text-center text-xs text-neutral-500">
@@ -66,71 +77,164 @@ export function AttendancesView({ attendances }: AttendancesViewProps) {
             <p class="text-neutral-500 mt-1">Aún no se han recibido registros en el sistema.</p>
           </div>
         ) : (
-          <div class="overflow-x-auto">
-            <table id="attendancesTable" class="w-full text-left text-xs text-neutral-300">
-              <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
-                <tr>
-                  <th scope="col" class="py-3 px-4">DNI</th>
-                  <th scope="col" class="py-3 px-4">Evento</th>
-                  <th scope="col" class="py-3 px-4">Fecha y Hora</th>
-                  <th scope="col" class="py-3 px-4">Distancia</th>
-                  <th scope="col" class="py-3 px-4">Precisión GPS</th>
-                  <th scope="col" class="py-3 px-4">Método</th>
-                  <th scope="col" class="py-3 px-4 text-right">Detalle Evento</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-neutral-800/60">
-                {attendances.map((att) => (
-                  <tr class="attendance-row hover:bg-neutral-800/30 transition-colors">
-                    <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider attendee-dni">
-                      {att.dni}
-                    </td>
+          <div>
+            {/* Mobile View: Compressed Cards (block md:hidden) */}
+            <div class="block md:hidden divide-y divide-neutral-800/60">
+              {attendances.map((att) => (
+                <div class="attendance-row p-3.5 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="attendee-dni font-mono font-bold text-white text-xs tracking-wider">
+                        {att.dni}
+                      </span>
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                        {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
+                      </span>
+                    </div>
+                    <a
+                      href={`/admin/events/${att.event_id}`}
+                      class="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium"
+                    >
+                      <span>Ver Evento</span>
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </div>
 
-                    <td class="py-3 px-4 font-medium text-white attendee-event max-w-xs truncate">
-                      <div>{att.event_title}</div>
-                      <div class="text-[10px] font-mono text-neutral-500">{att.event_public_code}</div>
-                    </td>
+                  <div class="attendee-event text-xs font-semibold text-neutral-200">
+                    <div>{att.event_title}</div>
+                    <div class="text-[10px] font-mono text-neutral-500 font-normal">{att.event_public_code}</div>
+                  </div>
 
-                    <td class="py-3 px-4 font-mono text-neutral-300 text-xs whitespace-nowrap">
+                  <div class="flex flex-wrap items-center justify-between gap-y-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-emerald-400 font-semibold">{att.distance_meters}m</span>
+                      <span>&plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
+                    </div>
+                    <span class="text-[10px] text-neutral-500">
                       {new Date(att.created_at).toLocaleString("es-PE", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
                         hour: "2-digit",
                         minute: "2-digit",
-                        second: "2-digit",
                       })}
-                    </td>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                    <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
-                      <span class="text-emerald-400 font-semibold">{att.distance_meters}m</span>
-                    </td>
-
-                    <td class="py-3 px-4 font-mono text-neutral-400 text-xs whitespace-nowrap">
-                      &plusmn;{Math.round(att.accuracy_meters)}m
-                    </td>
-
-                    <td class="py-3 px-4 whitespace-nowrap">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
-                        {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
-                      </span>
-                    </td>
-
-                    <td class="py-3 px-4 text-right whitespace-nowrap">
-                      <a
-                        href={`/admin/events/${att.event_id}`}
-                        class="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium"
-                      >
-                        <span>Ver</span>
-                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </a>
-                    </td>
+            {/* Desktop View: Full Table (hidden md:block) */}
+            <div class="hidden md:block overflow-x-auto">
+              <table id="attendancesTable" class="w-full text-left text-xs text-neutral-300">
+                <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
+                  <tr>
+                    <th scope="col" class="py-3 px-4">DNI</th>
+                    <th scope="col" class="py-3 px-4">Evento</th>
+                    <th scope="col" class="py-3 px-4">Fecha y Hora</th>
+                    <th scope="col" class="py-3 px-4">Distancia</th>
+                    <th scope="col" class="py-3 px-4">Precisión GPS</th>
+                    <th scope="col" class="py-3 px-4">Método</th>
+                    <th scope="col" class="py-3 px-4 text-right">Detalle Evento</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody class="divide-y divide-neutral-800/60">
+                  {attendances.map((att) => (
+                    <tr class="attendance-row hover:bg-neutral-800/30 transition-colors">
+                      <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider attendee-dni">
+                        {att.dni}
+                      </td>
+
+                      <td class="py-3 px-4 font-medium text-white attendee-event max-w-xs truncate">
+                        <div>{att.event_title}</div>
+                        <div class="text-[10px] font-mono text-neutral-500">{att.event_public_code}</div>
+                      </td>
+
+                      <td class="py-3 px-4 font-mono text-neutral-300 text-xs whitespace-nowrap">
+                        {new Date(att.created_at).toLocaleString("es-PE", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </td>
+
+                      <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
+                        <span class="text-emerald-400 font-semibold">{att.distance_meters}m</span>
+                      </td>
+
+                      <td class="py-3 px-4 font-mono text-neutral-400 text-xs whitespace-nowrap">
+                        &plusmn;{Math.round(att.accuracy_meters)}m
+                      </td>
+
+                      <td class="py-3 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                          {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
+                        </span>
+                      </td>
+
+                      <td class="py-3 px-4 text-right whitespace-nowrap">
+                        <a
+                          href={`/admin/events/${att.event_id}`}
+                          class="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium"
+                        >
+                          <span>Ver</span>
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls Footer */}
+            {(nextCursor != null || currentCursor != null) && (
+              <div class="p-3.5 sm:p-4 border-t border-neutral-800/80 bg-neutral-950/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-400">
+                <div class="flex items-center gap-1.5 font-mono text-center sm:text-left">
+                  <span>Mostrando</span>
+                  <span class="font-semibold text-white">{displayedCount}</span>
+                  <span>registros en esta página</span>
+                  {totalCount != null && (
+                    <span>(total: <strong class="text-neutral-200">{totalCount}</strong>)</span>
+                  )}
+                </div>
+
+                <div class="flex items-center gap-2">
+                  {currentCursor ? (
+                    <a
+                      href="/admin/attendances"
+                      class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-white font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      <span>Primera Página</span>
+                    </a>
+                  ) : null}
+
+                  {nextCursor ? (
+                    <a
+                      href={`/admin/attendances?cursor=${nextCursor}${limit ? `&limit=${limit}` : ""}`}
+                      class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/60 text-white font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Siguiente Página</span>
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span class="text-neutral-500 text-[11px] font-mono px-2 py-1">Fin de los registros</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

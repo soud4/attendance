@@ -6,15 +6,38 @@ import { AttendancesView } from "../views/admin/attendances_view";
 
 export class AttendancesAdminController {
   /**
-   * GET /admin/attendances - Centralized real-time attendances list
+   * GET /admin/attendances - Centralized real-time attendances list with cursor pagination
    */
   public static index(c: Context) {
     const user = c.get("user") as UserSession;
-    const attendances = AttendanceService.getAllWithEventInfo();
+
+    const limitParam = c.req.query("limit");
+    const cursorParam = c.req.query("cursor");
+
+    const limit = limitParam ? parseInt(limitParam, 10) : 25;
+    const cursor = cursorParam ? parseInt(cursorParam, 10) : undefined;
+
+    // Fetch limit + 1 items to determine if a next page exists
+    const rawAttendances = AttendanceService.getAllWithEventInfo({
+      cursor,
+      limit: limit + 1,
+    });
+
+    const hasNext = rawAttendances.length > limit;
+    const attendances = hasNext ? rawAttendances.slice(0, limit) : rawAttendances;
+    const lastItem = hasNext && attendances.length > 0 ? attendances[attendances.length - 1] : undefined;
+    const nextCursor = lastItem ? lastItem.id : null;
+    const totalCount = AttendanceService.getTotalCount();
 
     return c.html(
       <AdminLayout title="Registro Global de Asistencias" user={user} activePath="/admin/attendances">
-        <AttendancesView attendances={attendances} />
+        <AttendancesView
+          attendances={attendances}
+          nextCursor={nextCursor}
+          currentCursor={cursor}
+          limit={limit}
+          totalCount={totalCount}
+        />
       </AdminLayout>
     );
   }
