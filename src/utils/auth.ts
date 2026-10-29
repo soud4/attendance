@@ -2,6 +2,11 @@ import { sign, verify } from "hono/jwt";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Context, Next } from "hono";
 import { getDatabase, type User } from "../db";
+import {
+  isJsonRequest,
+  unauthorizedResponse,
+  forbiddenResponse,
+} from "../views/errors/error_view";
 
 const JWT_SECRET = process.env.JWT_SECRET || "bandera-asistencia-secret-key-2026-secure";
 
@@ -91,12 +96,18 @@ export function clearSessionCookie(c: Context): void {
 export async function authMiddleware(c: Context, next: Next) {
   const token = getCookie(c, "auth_session");
   if (!token) {
+    if (isJsonRequest(c)) {
+      return unauthorizedResponse(c, "Autenticación requerida para acceder a este recurso");
+    }
     return c.redirect("/login");
   }
 
   const user = await verifySessionToken(token);
   if (!user) {
     clearSessionCookie(c);
+    if (isJsonRequest(c)) {
+      return unauthorizedResponse(c, "Autenticación requerida para acceder a este recurso");
+    }
     return c.redirect("/login");
   }
 
@@ -108,9 +119,35 @@ export async function authMiddleware(c: Context, next: Next) {
 
   if (!dbUser || dbUser.status !== "ACTIVE") {
     clearSessionCookie(c);
+    if (isJsonRequest(c)) {
+      return forbiddenResponse(c, "No tienes los permisos necesarios para acceder a este recurso");
+    }
     return c.redirect("/login");
   }
 
   c.set("user", user);
   await next();
 }
+
+/**
+ * Middleware: Restricts access to specified roles
+ */
+export function requireRole(...allowedRoles: ("ADMIN" | "STAFF")[]) {
+  return async (c: Context, next: Next) => {
+    const user = c.get("user") as UserSession | undefined;
+    if (!user) {
+      if (isJsonRequest(c)) {
+        return unauthorizedResponse(c, "Autenticación requerida para acceder a este recurso");
+      }
+      return c.redirect("/login");
+    }
+
+    if (!allowedRoles.includes(user.role)) {
+      return forbiddenResponse(c, "No tienes los permisos necesarios para acceder a este recurso");
+    }
+
+    await next();
+  };
+}
+
+export const requireAdmin = requireRole("ADMIN");

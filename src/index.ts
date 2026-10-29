@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { serveStatic } from "hono/bun";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
@@ -8,6 +9,13 @@ import { seedAdminUser, seedDemoEvent } from "./db/seed";
 import { asistenciaRoute } from "./routes/asistencia";
 import { authRoute } from "./routes/admin/auth";
 import { adminEventsRoute } from "./routes/admin/events";
+import {
+  notFoundResponse,
+  forbiddenResponse,
+  unauthorizedResponse,
+  renderInternalErrorView,
+  isJsonRequest,
+} from "./views/errors/error_view";
 
 // Initialize database & schema
 const db = getDatabase();
@@ -24,31 +32,32 @@ try {
   console.warn("No se pudo auto-sembrar datos iniciales:", e);
 }
 
-const app = new Hono();
+export function createApp(): Hono {
+  const app = new Hono();
 
-// Middleware: Logging & Security
-app.use("*", logger());
-app.use(
-  "*",
-  secureHeaders({
-    xFrameOptions: "DENY",
-    xContentTypeOptions: "nosniff",
-    referrerPolicy: "strict-origin-when-cross-origin",
-  })
-);
+  // Middleware: Logging & Security
+  app.use("*", logger());
+  app.use(
+    "*",
+    secureHeaders({
+      xFrameOptions: "DENY",
+      xContentTypeOptions: "nosniff",
+      referrerPolicy: "strict-origin-when-cross-origin",
+    })
+  );
 
-// Serve Static Assets from /public
-app.use("/css/*", serveStatic({ root: "./public" }));
-app.use("/js/*", serveStatic({ root: "./public" }));
+  // Serve Static Assets from /public
+  app.use("/css/*", serveStatic({ root: "./public" }));
+  app.use("/js/*", serveStatic({ root: "./public" }));
 
-// Mount Routes
-app.route("/", asistenciaRoute);
-app.route("/", authRoute);
-app.route("/admin", adminEventsRoute);
+  // Mount Routes
+  app.route("/", asistenciaRoute);
+  app.route("/", authRoute);
+  app.route("/admin", adminEventsRoute);
 
-// Root Health & Info
-app.get("/", (c) => {
-  return c.html(`<!DOCTYPE html>
+  // Root Health & Info
+  app.get("/", (c) => {
+    return c.html(`<!DOCTYPE html>
 <html lang="es" class="h-full bg-neutral-950">
 <head>
   <meta charset="UTF-8">
@@ -99,21 +108,72 @@ app.get("/", (c) => {
   </div>
 </body>
 </html>`);
-});
-
-// Helper route in local development to download root CA for mobile phones
-if (process.env.NODE_ENV !== "production") {
-  const caPath = `${process.env.HOME}/.local/share/mkcert/rootCA.pem`;
-  app.get("/ca.pem", (c) => {
-    if (existsSync(caPath)) {
-      return c.body(Bun.file(caPath).stream(), 200, {
-        "Content-Type": "application/x-x509-ca-cert",
-        "Content-Disposition": 'attachment; filename="rootCA.pem"',
-      });
-    }
-    return c.text("CA no encontrada", 404);
   });
+
+  // Helper route in local development to download root CA for mobile phones
+  if (process.env.NODE_ENV !== "production") {
+    const caPath = `${process.env.HOME}/.local/share/mkcert/rootCA.pem`;
+    app.get("/ca.pem", (c) => {
+      if (existsSync(caPath)) {
+        return c.body(Bun.file(caPath).stream(), 200, {
+          "Content-Type": "application/x-x509-ca-cert",
+          "Content-Disposition": 'attachment; filename="rootCA.pem"',
+        });
+      }
+      return c.text("CA no encontrada", 404);
+    });
+  }
+
+  // Global Error Handler (app.onError)
+  app.onError((err, c) => {
+    if (err instanceof HTTPException) {
+      if (err.status === 401) {
+        return unauthorizedResponse(c, err.message);
+      }
+      if (err.status === 403) {
+        return forbiddenResponse(c, err.message);
+      }
+      if (err.status === 404) {
+        return notFoundResponse(c, err.message);
+      }
+      if (isJsonRequest(c)) {
+        return c.json(
+          {
+            success: false,
+            error: err.name || "Error",
+            message: err.message,
+            status: err.status,
+          },
+          err.status
+        );
+      }
+      return err.getResponse();
+    }
+
+    console.error("Unhandled server error:", err);
+    if (isJsonRequest(c)) {
+      return c.json(
+        {
+          success: false,
+          error: "Internal Server Error",
+          message: "Ocurrió un error inesperado en el servidor",
+          status: 500,
+        },
+        500
+      );
+    }
+    return c.html(renderInternalErrorView(), 500);
+  });
+
+  // Global 404 Handler (app.notFound)
+  app.notFound((c) => {
+    return notFoundResponse(c);
+  });
+
+  return app;
 }
+
+export const app = createApp();
 
 const PORT = Number(process.env.PORT) || 3000;
 

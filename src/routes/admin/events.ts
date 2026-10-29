@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { getDatabase, type Event } from "../../db";
-import { authMiddleware, type UserSession } from "../../utils/auth";
+import { authMiddleware, requireAdmin, type UserSession } from "../../utils/auth";
 import { renderAdminLayout } from "../../views/layouts/admin_layout";
 import { renderDashboardView, type EventWithStats } from "../../views/admin/dashboard_view";
 import { renderEventFormView } from "../../views/admin/event_form_view";
@@ -53,8 +53,8 @@ adminEventsRoute.get("/events/new", (c) => {
   return c.html(renderAdminLayout("Nuevo Evento", user, content));
 });
 
-// 3. Create Event Handler
-adminEventsRoute.post("/events", async (c) => {
+// 3. Create Event Handler (Admin only)
+adminEventsRoute.post("/events", requireAdmin, async (c) => {
   const user = c.get("user");
   const body = await c.req.parseBody();
 
@@ -151,8 +151,8 @@ adminEventsRoute.post("/events", async (c) => {
   return c.redirect(`/admin?notice=Evento+«${encodeURIComponent(title)}»+creado+exitosamente`);
 });
 
-// 4. Toggle Event Status (Open <-> Closed)
-adminEventsRoute.post("/events/:id/toggle", (c) => {
+// 4. Toggle Event Status (Open <-> Closed) (Admin only)
+adminEventsRoute.post("/events/:id/toggle", requireAdmin, (c) => {
   const id = Number(c.req.param("id"));
   const db = getDatabase();
 
