@@ -46,8 +46,8 @@ export function isJsonRequest(c: Context): boolean {
 /**
  * Renders the 404 Not Found view in macOS Dark aesthetics
  */
-export function renderNotFoundView(options?: { message?: string; backUrl?: string }): string {
-  const title = "404 — Página no encontrada";
+export function renderNotFoundView(options?: { title?: string; message?: string; backUrl?: string }): string {
+  const title = options?.title || "404 — Página no encontrada";
   const message =
     options?.message ||
     "El recurso solicitado no existe, ha sido movido o la dirección ingresada no es correcta.";
