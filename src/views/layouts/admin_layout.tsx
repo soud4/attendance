@@ -43,6 +43,11 @@ export function AdminLayout({ title, user, activePath = "/admin", children }: Ad
           .sidebar-scroll::-webkit-scrollbar {
             width: 4px;
           }
+          /* Hide Leaflet watermark and zoom controls for a minimalist UI */
+          .leaflet-control-attribution,
+          .leaflet-control-zoom {
+            display: none !important;
+          }
           .sidebar-scroll::-webkit-scrollbar-thumb {
             background: #262626;
             border-radius: 4px;

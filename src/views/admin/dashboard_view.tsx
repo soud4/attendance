@@ -64,7 +64,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>Nuevo Evento (Mapa)</span>
+            <span>+ Nuevo Evento</span>
           </button>
         </div>
       </div>
@@ -595,9 +595,8 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
               const lon = parseFloat(lonInput.value) || -77.042793;
               const radius = parseInt(radiusInput.value, 10) || 100;
 
-              modalMapInstance = L.map("modalEventMap").setView([lat, lon], 16);
+              modalMapInstance = L.map("modalEventMap", { zoomControl: false, attributionControl: false }).setView([lat, lon], 16);
               L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; OpenStreetMap',
                 maxZoom: 19,
               }).addTo(modalMapInstance);
 
@@ -712,21 +711,26 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         }}
       />
     
-      {/* Quick Creation Modal with Interactive Leaflet Map */}
+      {/* Creation Modal with Leaflet Map - Fullscreen on mobile */}
       <div
         id="quickCreateModal"
-        class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center"
+        class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-0 md:p-6 overflow-y-auto flex items-stretch md:items-center justify-center"
       >
-        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 relative max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between pb-4 border-b border-neutral-800 mb-5">
-            <div>
-              <h2 class="text-lg font-bold text-white tracking-tight">Creación Rápida de Evento</h2>
-              <p class="text-xs text-neutral-400 mt-0.5">Selecciona el punto en el mapa y configura los detalles</p>
+        <div class="bg-neutral-950 md:bg-neutral-900 border-0 md:border md:border-neutral-800 rounded-none md:rounded-2xl shadow-2xl w-full min-h-screen md:min-h-0 md:max-w-2xl p-4 sm:p-6 relative overflow-y-auto flex flex-col justify-between md:justify-start">
+          <div class="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">Crear Evento</h2>
             </div>
             <button
               type="button"
               onclick="closeQuickCreateModal()"
               class="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-all cursor-pointer"
+              title="Cerrar"
             >
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -737,7 +741,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
           <form id="modalCreateEventForm" action="/admin/events" method="post" class="space-y-4">
             <div>
               <label for="modal_title" class="block text-xs font-semibold text-neutral-300 mb-1">
-                Título del Evento <span class="text-blue-400">*</span>
+                Título <span class="text-blue-400">*</span>
               </label>
               <input
                 type="text"
@@ -752,14 +756,17 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label for="modal_location_name" class="block text-xs font-semibold text-neutral-300">
-                  Nombre de la Sede o Lugar <span class="text-blue-400">*</span>
+                  Lugar / Sede <span class="text-blue-400">*</span>
                 </label>
                 <button
                   type="button"
                   id="modalQueryOsmBtn"
-                  class="text-[11px] text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                  class="inline-flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
                 >
-                  Consultar OSM
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Buscar en OSM</span>
                 </button>
               </div>
               <input
@@ -776,23 +783,35 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             {/* Map & Controls */}
             <div class="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-3">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-semibold text-neutral-200">Ubicación y Cobertura (OpenStreetMap)</span>
+                <span class="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Ubicación GPS</span>
+                </span>
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
                     id="modalGeoBtn"
-                    class="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium cursor-pointer"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium cursor-pointer"
                   >
-                    Mi ubicación
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Mi ubicación</span>
                   </button>
                   <a
                     id="modalGmapsBtn"
                     href="https://www.google.com/maps?q=-12.046374,-77.042793"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium"
                   >
-                    Google Maps
+                    <span>Google Maps</span>
+                    <svg class="w-3 h-3 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                   </a>
                 </div>
               </div>
@@ -830,7 +849,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             {/* Radius */}
             <div>
               <label for="modal_radius_meters" class="block text-xs font-semibold text-neutral-300 mb-1">
-                Radio de Cobertura (metros)
+                Radio (m) <span class="text-blue-400">*</span>
               </label>
               <div class="flex items-center gap-2">
                 <input
@@ -840,7 +859,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
                   min={10}
                   max={5000}
                   value={100}
-                  class="w-28 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs sm:text-sm py-2 px-3 focus:outline-none"
+                  class="w-24 bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-xs sm:text-sm py-2 px-3 focus:outline-none font-mono"
                 />
                 <button type="button" onclick="setModalRadius(50)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">50m</button>
                 <button type="button" onclick="setModalRadius(100)" class="px-2 py-1 rounded-lg bg-neutral-800 text-xs text-neutral-300 cursor-pointer">100m</button>
@@ -852,7 +871,9 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             {/* Dates */}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
               <div>
-                <label for="modal_event_date" class="block text-[11px] font-semibold text-neutral-400 mb-1">Fecha</label>
+                <label for="modal_event_date" class="block text-[11px] font-semibold text-neutral-400 mb-1">
+                  Fecha <span class="text-blue-400">*</span>
+                </label>
                 <input
                   type="date"
                   id="modal_event_date"
@@ -873,7 +894,9 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
                 />
               </div>
               <div>
-                <label for="modal_end_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">Cierre Automático</label>
+                <label for="modal_end_time" class="block text-[11px] font-semibold text-neutral-400 mb-1">
+                  Cierre <span class="text-amber-400">*</span>
+                </label>
                 <input
                   type="time"
                   id="modal_end_time"
@@ -888,25 +911,23 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             <input type="hidden" id="modal_starts_at" name="starts_at" />
             <input type="hidden" id="modal_ends_at" name="ends_at" />
 
-            <div class="pt-3 border-t border-neutral-800 flex items-center justify-between">
-              <a href="/admin/events/new" class="text-xs text-blue-400 hover:underline">
-                Abrir formulario completo
-              </a>
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  onclick="closeQuickCreateModal()"
-                  class="px-3.5 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-semibold hover:bg-neutral-700 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 shadow-md active:scale-95 transition-all cursor-pointer"
-                >
-                  Crear Evento
-                </button>
-              </div>
+            <div class="pt-3 border-t border-neutral-800 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onclick="closeQuickCreateModal()"
+                class="px-4 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-semibold hover:bg-neutral-700 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Crear Evento</span>
+              </button>
             </div>
           </form>
         </div>

@@ -207,7 +207,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
           {/* Radio de Cobertura */}
           <div>
             <label for="radius_meters" class="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Radio (metros) <span class="text-blue-400">*</span>
+              Radio (m) <span class="text-blue-400">*</span>
             </label>
             <div class="flex items-center gap-2.5 flex-wrap">
               <input
@@ -345,9 +345,8 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
               let lon = parseFloat(lonInput.value) || ${currentLon};
               let radius = parseInt(radiusInput.value, 10) || ${currentRadius};
 
-              const map = L.map("eventMap").setView([lat, lon], 16);
+              const map = L.map("eventMap", { zoomControl: false, attributionControl: false }).setView([lat, lon], 16);
               L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 19,
               }).addTo(map);
 
@@ -366,7 +365,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
 
               let osmTimer = null;
               function fetchOsmName(lt, ln) {
-                if (statusEl) statusEl.textContent = "Consultando OpenStreetMap...";
+                if (statusEl) statusEl.textContent = "Consultando OSM...";
                 clearTimeout(osmTimer);
                 osmTimer = setTimeout(function() {
                   fetch("/api/geo/reverse?lat=" + lt + "&lon=" + ln)

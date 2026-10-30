@@ -168,11 +168,11 @@ describe("Admin Authentication & Event Management", () => {
 
       expect(res.status).toBe(200);
       const html = await res.text();
-      expect(html).toContain("Crear Nuevo Evento");
-      expect(html).toContain("Título del Evento");
-      expect(html).toContain("Nombre de la Sede");
-      expect(html).toContain("Usar mi ubicación actual");
-      expect(html).toContain("Radio de Cobertura");
+      expect(html).toContain("Crear Evento");
+      expect(html).toContain("Título");
+      expect(html).toContain("Sede");
+      expect(html).toContain("ubicación");
+      expect(html).toContain("Radio");
     });
 
     it("POST /admin/events should reject missing title with 400", async () => {
