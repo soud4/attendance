@@ -1,53 +1,8 @@
 import type { Event, Attendance } from "../db";
 import { isEventExpired } from "../services/event.service";
+import { formatSpanishDate, cleanTimeDisplay } from "../utils/date";
 
-export function formatSpanishDate(startsAt: string | null, createdAt: string): string {
-  const candidate = (startsAt && /\d{4}/.test(startsAt) ? startsAt : null) || createdAt;
-  const match = candidate.match(/(\d{4})-(\d{2})-(\d{2})/);
-
-  const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const months = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ];
-
-  if (match) {
-    const year = parseInt(match[1]!, 10);
-    const month = parseInt(match[2]!, 10) - 1;
-    const day = parseInt(match[3]!, 10);
-    const d = new Date(year, month, day);
-    return `${days[d.getDay()]}, ${day} de ${months[month]} de ${year}`;
-  }
-
-  const d = new Date(candidate);
-  if (!isNaN(d.getTime())) {
-    return `${days[d.getDay()]}, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
-  }
-
-  const today = new Date();
-  return `${days[today.getDay()]}, ${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
-}
-
-export function cleanTimeDisplay(val: string | null, defaultFallback: string): string {
-  if (!val || !val.trim()) return defaultFallback;
-  const raw = val.trim();
-
-  // If it's an ISO datetime like "2026-10-29T08:30" or "2026-10-29 08:30:00"
-  if (raw.includes("T") || (/\d{4}-\d{2}-\d{2}/.test(raw) && raw.includes(":"))) {
-    const timePart = raw.split(/[T ]/)[1];
-    if (timePart) {
-      const parts = timePart.split(":");
-      let h = parseInt(parts[0]!, 10);
-      const m = parts[1] || "00";
-      const ampm = h >= 12 ? "PM" : "AM";
-      if (h > 12) h -= 12;
-      if (h === 0) h = 12;
-      return `${String(h).padStart(2, "0")}:${m} ${ampm}`;
-    }
-  }
-
-  return raw;
-}
+export { formatSpanishDate, cleanTimeDisplay };
 
 export interface AttendanceViewProps {
   event: Event;

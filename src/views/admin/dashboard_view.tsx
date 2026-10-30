@@ -1,4 +1,5 @@
 import type { EventWithStats } from "../../services/event.service";
+import { getPeruDateString } from "../../utils/date";
 
 interface DashboardViewProps {
   events: EventWithStats[];
@@ -731,6 +732,15 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             if (!modal) return;
             modal.classList.remove("hidden");
 
+            // Ensure event date defaults to Peru timezone (America/Lima) on client
+            const dInput = document.getElementById("modal_event_date");
+            if (dInput) {
+              try {
+                const peruToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
+                if (!dInput.value) dInput.value = peruToday;
+              } catch (_) {}
+            }
+
             if (typeof L !== "undefined" && !modalMapInstance) {
               const latInput = document.getElementById("modal_latitude");
               const lonInput = document.getElementById("modal_longitude");
@@ -1140,7 +1150,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
                   id="modal_event_date"
                   name="event_date"
                   required
-                  value={new Date().toISOString().split("T")[0]}
+                  value={getPeruDateString()}
                   class="w-full bg-neutral-800 border border-neutral-700 rounded-xl text-white text-xs py-2 px-2.5 focus:outline-none"
                 />
               </div>

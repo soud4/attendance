@@ -1,6 +1,7 @@
 import type { User } from "../../db";
 import { type UserSession } from "../../utils/auth";
 import { SUPER_ADMIN_IDENTIFIER } from "../../config";
+import { formatDatePeru } from "../../utils/date";
 
 interface UsersViewProps {
   users: User[];
@@ -224,7 +225,7 @@ export function UsersView({ users, currentUser, noticeMessage, errorMessage }: U
 
                       {/* Created Date */}
                       <span class="text-[10px] text-neutral-500 font-mono">
-                        {new Date(u.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                        {formatDatePeru(u.created_at)}
                       </span>
                     </div>
 
@@ -365,11 +366,7 @@ export function UsersView({ users, currentUser, noticeMessage, errorMessage }: U
                         </td>
 
                         <td class="py-3.5 px-4 font-mono text-neutral-400 text-xs whitespace-nowrap">
-                          {new Date(u.created_at).toLocaleDateString("es-PE", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })}
+                          {formatDatePeru(u.created_at)}
                         </td>
 
                         <td class="py-3.5 px-4 text-right">

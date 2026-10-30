@@ -1,3 +1,5 @@
+import { getPeruDateString } from "../../utils/date";
+
 interface EventFormViewProps {
   errorMessage?: string;
   values?: Record<string, any>;
@@ -8,8 +10,8 @@ export function EventFormView({ errorMessage, values }: EventFormViewProps) {
   const defaultLat = values?.latitude || -12.046374;
   const defaultLon = values?.longitude || -77.042793;
 
-  // Default date: today in YYYY-MM-DD
-  const todayStr = new Date().toISOString().split("T")[0];
+  // Default date: today in YYYY-MM-DD in Peru timezone (America/Lima)
+  const todayStr = getPeruDateString();
   const eventDate = values?.event_date || (values?.starts_at && values.starts_at.includes("T") ? values.starts_at.split("T")[0] : todayStr);
   const startTime = values?.start_time || (values?.starts_at && values.starts_at.includes("T") ? values.starts_at.split("T")[1].slice(0, 5) : "08:30");
   const endTime = values?.end_time || (values?.ends_at && values.ends_at.includes("T") ? values.ends_at.split("T")[1].slice(0, 5) : "18:00");

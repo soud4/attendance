@@ -13,6 +13,7 @@ import {
   EVENT_CODE_CHARS,
   EVENT_CODE_RANDOM_LENGTH,
 } from "../config";
+import { parsePeruDateTime, getPeruDateString, PERU_TIMEZONE_OFFSET } from "../utils/date";
 
 export interface EventWithStats extends Event {
   attendee_count: number;
@@ -52,8 +53,8 @@ export function isEventExpired(event: Event): boolean {
 
   // 1. Full date/datetime with 4-digit year (e.g. "2026-10-29T18:00", "2026-10-29 18:00:00")
   if (/\d{4}/.test(rawEnd)) {
-    const parsed = new Date(rawEnd);
-    if (!isNaN(parsed.getTime())) {
+    const parsed = parsePeruDateTime(rawEnd);
+    if (parsed && !isNaN(parsed.getTime())) {
       return Date.now() > parsed.getTime();
     }
   }
@@ -69,40 +70,49 @@ export function isEventExpired(event: Event): boolean {
     if (meridian === "PM" && hours < 12) hours += 12;
     if (meridian === "AM" && hours === 12) hours = 0;
 
-    // Base date from starts_at if it contains a year, otherwise created_at, otherwise current date
-    let baseYear: number;
-    let baseMonth: number;
-    let baseDay: number;
+    // Base date from starts_at if it contains a year, otherwise created_at, otherwise current Peru date
+    let baseYearStr: string;
+    let baseMonthStr: string;
+    let baseDayStr: string;
 
     const dateCandidate =
       (event.starts_at && /\d{4}/.test(event.starts_at) ? event.starts_at : null) ||
       (event.created_at && /\d{4}/.test(event.created_at) ? event.created_at : null);
 
     if (dateCandidate) {
-      const matchDate = dateCandidate.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (matchDate) {
-        baseYear = parseInt(matchDate[1]!, 10);
-        baseMonth = parseInt(matchDate[2]!, 10) - 1;
-        baseDay = parseInt(matchDate[3]!, 10);
+      const d = parsePeruDateTime(dateCandidate) || new Date(dateCandidate);
+      if (!isNaN(d.getTime())) {
+        const parts = getPeruDateString(d).split("-");
+        baseYearStr = parts[0]!;
+        baseMonthStr = parts[1]!;
+        baseDayStr = parts[2]!;
       } else {
-        const d = new Date(dateCandidate);
-        baseYear = d.getFullYear();
-        baseMonth = d.getMonth();
-        baseDay = d.getDate();
+        const matchDate = dateCandidate.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (matchDate) {
+          baseYearStr = matchDate[1]!;
+          baseMonthStr = matchDate[2]!;
+          baseDayStr = matchDate[3]!;
+        } else {
+          const parts = getPeruDateString().split("-");
+          baseYearStr = parts[0]!;
+          baseMonthStr = parts[1]!;
+          baseDayStr = parts[2]!;
+        }
       }
     } else {
-      const now = new Date();
-      baseYear = now.getFullYear();
-      baseMonth = now.getMonth();
-      baseDay = now.getDate();
+      const parts = getPeruDateString().split("-");
+      baseYearStr = parts[0]!;
+      baseMonthStr = parts[1]!;
+      baseDayStr = parts[2]!;
     }
 
-    const expiryDate = new Date(baseYear, baseMonth, baseDay, hours, minutes, seconds, 0);
+    const isoString = `${baseYearStr}-${baseMonthStr}-${baseDayStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}${PERU_TIMEZONE_OFFSET}`;
+    const expiryDate = new Date(isoString);
     return Date.now() > expiryDate.getTime();
   }
 
   // 3. Fallback standard Date parsing
-  const fallbackDate = new Date(rawEnd);
+  const fallbackDate = parsePeruDateTime(rawEnd) || new Date(rawEnd);
   if (!isNaN(fallbackDate.getTime())) {
     return Date.now() > fallbackDate.getTime();
   }

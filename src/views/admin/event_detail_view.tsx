@@ -1,5 +1,6 @@
 import type { Attendance } from "../../db";
 import type { EventWithStats } from "../../services/event.service";
+import { formatTimePeru, formatDatePeru, formatDateTimePeru } from "../../utils/date";
 
 interface EventDetailViewProps {
   event: EventWithStats;
@@ -235,14 +236,14 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                       <div class="flex items-center gap-1.5">
                         <span class="text-neutral-500">Entrada:</span>
                         <span class="text-neutral-200">
-                          {new Date(att.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                          {formatTimePeru(att.created_at)}
                         </span>
                       </div>
                       <div class="flex items-center gap-1.5">
                         <span class="text-neutral-500">Salida:</span>
                         {att.check_out_at ? (
                           <span class="text-emerald-400 font-semibold">
-                            {new Date(att.check_out_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                            {formatTimePeru(att.check_out_at)}
                           </span>
                         ) : (
                           <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
@@ -254,11 +255,7 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                     <div class="flex items-center justify-between text-[10px] text-neutral-500 pt-0.5">
                       <span>{att.distance_meters}m &bull; &plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
                       <span>
-                        {new Date(att.created_at).toLocaleDateString("es-PE", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
+                        {formatDatePeru(att.created_at)}
                       </span>
                     </div>
                   </div>
@@ -291,24 +288,12 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                         {att.attendee_base && <div class="text-[10px] text-neutral-400 font-mono">{att.attendee_base}</div>}
                       </td>
                       <td class="py-3 px-4 font-mono text-neutral-300 text-xs">
-                        {new Date(att.created_at).toLocaleString("es-PE", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatDateTimePeru(att.created_at)}
                       </td>
                       <td class="py-3 px-4 font-mono text-xs">
                         {att.check_out_at ? (
                           <span class="text-emerald-400 font-semibold">
-                            {new Date(att.check_out_at).toLocaleString("es-PE", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatDateTimePeru(att.check_out_at)}
                           </span>
                         ) : (
                           <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-950/60 text-amber-400 border border-amber-800/40">

@@ -29,6 +29,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATABASE_PATH=/app/data/data.sqlite
+ENV TZ=America/Lima
+
+# Configure timezone to America/Lima (Peru UTC-5)
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/America/Lima /etc/localtime && \
+    echo "America/Lima" > /etc/timezone
 
 # Install production dependencies and copy runtime configs
 COPY package.json bun.lock* tsconfig.json bunfig.toml ./

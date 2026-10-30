@@ -14,6 +14,7 @@ services:
       - PORT=3000
       - DATABASE_PATH=/app/data/data.sqlite
       - AUTO_SEED=true
+      - TZ=America/Lima
     volumes:
       # Persists SQLite database across container recreations & Dokploy redeployments
       - asistencia-data:/app/data

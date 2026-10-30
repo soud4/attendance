@@ -1,4 +1,5 @@
 import type { AttendanceWithEvent } from "../../services/attendance.service";
+import { formatTimePeru, formatDatePeru, formatDateTimePeru } from "../../utils/date";
 
 interface AttendancesViewProps {
   attendances: AttendanceWithEvent[];
@@ -222,7 +223,7 @@ export function AttendancesView({
                           </svg>
                           <span class="text-neutral-500">Entrada:</span>
                           <span class="text-neutral-200">
-                            {new Date(att.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                            {formatTimePeru(att.created_at)}
                           </span>
                         </div>
                         <div class="flex items-center gap-1.5">
@@ -232,7 +233,7 @@ export function AttendancesView({
                           <span class="text-neutral-500">Salida:</span>
                           {att.check_out_at ? (
                             <span class="text-emerald-400 font-semibold">
-                              {new Date(att.check_out_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                              {formatTimePeru(att.check_out_at)}
                             </span>
                           ) : (
                             <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
@@ -253,11 +254,7 @@ export function AttendancesView({
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                           <span>
-                            {new Date(att.created_at).toLocaleDateString("es-PE", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })}
+                            {formatDatePeru(att.created_at)}
                           </span>
                         </span>
                       </div>
@@ -314,25 +311,13 @@ export function AttendancesView({
                         </td>
 
                         <td class="py-3 px-4 font-mono text-neutral-300 text-xs whitespace-nowrap">
-                          {new Date(att.created_at).toLocaleString("es-PE", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDateTimePeru(att.created_at)}
                         </td>
 
                         <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
                           {att.check_out_at ? (
                             <span class="text-emerald-400 font-semibold">
-                              {new Date(att.check_out_at).toLocaleString("es-PE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatDateTimePeru(att.check_out_at)}
                             </span>
                           ) : (
                             <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-950/60 text-amber-400 border border-amber-800/40">

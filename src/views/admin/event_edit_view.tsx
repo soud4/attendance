@@ -1,4 +1,5 @@
 import type { Event } from "../../db";
+import { getPeruDateString } from "../../utils/date";
 
 interface EventEditViewProps {
   event: Event;
@@ -11,7 +12,7 @@ export function EventEditView({ event, errorMessage }: EventEditViewProps) {
   const currentLon = event.longitude;
 
   // Extract date and times for input elements
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getPeruDateString();
   let eventDate = todayStr;
   if (event.starts_at && /\d{4}-\d{2}-\d{2}/.test(event.starts_at)) {
     eventDate = event.starts_at.split("T")[0]!.split(" ")[0]!;
