@@ -212,6 +212,9 @@ describe("Mobile UI Optimization & Cursor Pagination", () => {
       expect(html).toContain("block md:hidden");
       expect(html).toContain("hidden md:block");
       expect(html).toContain("Evento Test Table");
+
+      // Format switcher toggle is hidden on mobile (desktop only md:flex)
+      expect(html).toContain("hidden md:flex");
     });
 
     it("UsersView should render cleaned form labels, h-10 alignment, and mobile cards", async () => {

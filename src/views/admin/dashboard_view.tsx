@@ -21,9 +21,9 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
           <p class="text-xs text-neutral-400 mt-1">Supervisa, administra y controla la asistencia de tus actividades presenciales</p>
         </div>
 
-        <div class="flex items-center gap-3">
-          {/* View Switcher Toggle */}
-          <div class="bg-neutral-900 border border-neutral-800 p-1 rounded-xl flex items-center gap-1 shadow-sm">
+        <div class="flex items-center justify-end gap-3 w-full sm:w-auto">
+          {/* View Switcher Toggle (Hidden on mobile, only desktop md+) */}
+          <div class="hidden md:flex bg-neutral-900 border border-neutral-800 p-1 rounded-xl items-center gap-1 shadow-sm">
             <a
               href="/admin?view=cards"
               title="Vista de Tarjetas"
@@ -60,7 +60,7 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
             type="button"
             id="openQuickCreateModalBtn"
             onclick="openQuickCreateModal()"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
