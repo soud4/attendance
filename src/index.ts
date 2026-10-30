@@ -20,6 +20,7 @@ import {
   isJsonRequest,
 } from "./views/errors/error_view";
 import { WelcomeView } from "./views/public/welcome_view";
+import { EventService } from "./services/event.service";
 import { env } from "./config/env";
 
 // Initialize database & schema
@@ -65,7 +66,8 @@ export function createApp(): Hono {
 
   // Root Health & Info
   app.get("/", (c) => {
-    return c.html(WelcomeView());
+    const events = EventService.getLatestPublicEvents(4);
+    return c.html(WelcomeView({ events }));
   });
 
   // Helper route in local development to download root CA for mobile phones

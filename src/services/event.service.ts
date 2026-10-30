@@ -297,6 +297,32 @@ export class EventService {
   }
 
   /**
+   * Get the latest public events (maximum 4) ordered by creation date DESC (most recent first)
+   * with automatic lazy auto-close check for expired schedules.
+   */
+  public static getLatestPublicEvents(limit: number = 4): (Event & { is_active: boolean })[] {
+    const db = getDatabase();
+    const rows = db
+      .prepare(`
+        SELECT *
+        FROM events
+        ORDER BY created_at DESC
+        LIMIT $limit
+      `)
+      .all({ $limit: limit }) as Event[];
+
+    return rows.map((evt) => {
+      const updated = checkAutoClose(evt);
+      const expired = isEventExpired(updated);
+      const isActive = updated.status === "OPEN" && !expired;
+      return {
+        ...updated,
+        is_active: isActive,
+      };
+    });
+  }
+
+  /**
    * Create a new event with input validation and auto-generated unique code
    */
   public static create(input: CreateEventInput): Event {
