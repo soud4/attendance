@@ -1,6 +1,7 @@
-import { getDatabase, type Attendance, type Event } from "../db";
+import { getDatabase, type Attendance, type Event, type Attendee } from "../db";
 import { EventService, isEventExpired, checkAutoClose } from "./event.service";
 import {
+  ValidationError,
   InvalidDniError,
   InvalidCoordinatesError,
   EventNotFoundError,
@@ -16,6 +17,8 @@ export interface RegisterAttendanceInput {
   latitude: number;
   longitude: number;
   accuracy: number;
+  fullName?: string;
+  baseName?: string;
   method?: "SELF" | "ASSISTED";
   recordedByUserId?: number | null;
   ipAddress?: string | null;
@@ -31,11 +34,20 @@ export interface AttendanceResult {
   action: "CHECK_IN" | "CHECK_OUT";
   checkInAt?: string;
   checkOutAt?: string;
+  fullName?: string | null;
+  baseName?: string | null;
 }
 
 export interface AttendanceWithEvent extends Attendance {
   event_title: string;
   event_public_code: string;
+  attendee_name?: string | null;
+  attendee_base?: string | null;
+}
+
+export interface AttendanceWithAttendee extends Attendance {
+  attendee_name?: string | null;
+  attendee_base?: string | null;
 }
 
 export interface PaginationOptions {
@@ -151,6 +163,10 @@ export class AttendanceService {
       throw new AttendanceAlreadyRegisteredError(dni);
     }
 
+    // Lookup attendee in directory
+    const attendeeStmt = db.prepare("SELECT * FROM attendees WHERE dni = $dni LIMIT 1;");
+    let existingAttendee = attendeeStmt.get({ $dni: dni }) as Attendee | undefined;
+
     // 7. Check if attendee already registered Entrada
     const existingStmt = db.prepare(`
       SELECT id, created_at, check_out_at
@@ -187,7 +203,42 @@ export class AttendanceService {
         action: "CHECK_OUT",
         checkInAt: existing.created_at,
         checkOutAt,
+        fullName: existingAttendee?.full_name || null,
+        baseName: existingAttendee?.base_name || null,
       };
+    }
+
+    // Ensure attendee is registered in directory before first CHECK_IN
+    if (!existingAttendee) {
+      const cleanName = String(input.fullName || "").trim() || `Asistente ${dni}`;
+      const cleanBase = String(input.baseName || "").trim() || "Base General";
+
+      const insAtt = db.prepare(`
+        INSERT INTO attendees (dni, full_name, base_name, created_at, updated_at)
+        VALUES ($dni, $full_name, $base_name, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        ON CONFLICT(dni) DO UPDATE SET
+          full_name = excluded.full_name,
+          base_name = excluded.base_name,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        RETURNING *;
+      `);
+      existingAttendee = insAtt.get({
+        $dni: dni,
+        $full_name: cleanName,
+        $base_name: cleanBase,
+      }) as Attendee;
+    } else if (input.fullName && input.baseName) {
+      const cleanName = String(input.fullName).trim();
+      const cleanBase = String(input.baseName).trim();
+      if (cleanName.length >= 2 && cleanBase.length >= 2) {
+        db.prepare(`
+          UPDATE attendees
+          SET full_name = $full_name, base_name = $base_name, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          WHERE dni = $dni;
+        `).run({ $dni: dni, $full_name: cleanName, $base_name: cleanBase });
+        existingAttendee.full_name = cleanName;
+        existingAttendee.base_name = cleanBase;
+      }
     }
 
     // 8. Record CHECK_IN (Entrada) - Atomic Insert
@@ -252,44 +303,58 @@ export class AttendanceService {
       recordedAt: result.created_at,
       action: "CHECK_IN",
       checkInAt: result.created_at,
+      fullName: existingAttendee?.full_name || null,
+      baseName: existingAttendee?.base_name || null,
     };
   }
 
   /**
    * Get an attendance record by eventId and DNI
    */
-  public static getByEventAndDni(eventId: number, dni: string): Attendance | null {
+  public static getByEventAndDni(eventId: number, dni: string): (Attendance & { attendee_name?: string | null; attendee_base?: string | null }) | null {
     const db = getDatabase();
     const stmt = db.prepare(`
-      SELECT *
-      FROM attendances
-      WHERE event_id = $event_id AND dni = $dni;
+      SELECT 
+        a.*,
+        att.full_name as attendee_name,
+        att.base_name as attendee_base
+      FROM attendances a
+      LEFT JOIN attendees att ON a.dni = att.dni
+      WHERE a.event_id = $event_id AND a.dni = $dni;
     `);
-    const record = stmt.get({ $event_id: eventId, $dni: dni }) as Attendance | undefined;
+    const record = stmt.get({ $event_id: eventId, $dni: dni }) as (Attendance & { attendee_name?: string | null; attendee_base?: string | null }) | undefined;
     return record || null;
   }
 
   /**
    * Get all attendances registered for an event with optional cursor pagination
    */
-  public static getByEventId(eventId: number, options?: PaginationOptions): Attendance[] {
+  public static getByEventId(eventId: number, options?: PaginationOptions): AttendanceWithAttendee[] {
     const db = getDatabase();
-    let query = "SELECT * FROM attendances WHERE event_id = $event_id";
+    let query = `
+      SELECT 
+        a.*,
+        att.full_name as attendee_name,
+        att.base_name as attendee_base
+      FROM attendances a
+      LEFT JOIN attendees att ON a.dni = att.dni
+      WHERE a.event_id = $event_id
+    `;
     const params: Record<string, any> = { $event_id: eventId };
 
     if (options?.cursor != null && !isNaN(options.cursor)) {
-      query += " AND id < $cursor";
+      query += " AND a.id < $cursor";
       params.$cursor = Number(options.cursor);
     }
 
-    query += " ORDER BY id DESC";
+    query += " ORDER BY a.id DESC";
 
     if (options?.limit != null && options.limit > 0) {
       query += " LIMIT $limit";
       params.$limit = Number(options.limit);
     }
 
-    return db.prepare(query).all(params) as Attendance[];
+    return db.prepare(query).all(params) as AttendanceWithAttendee[];
   }
 
   /**
@@ -301,9 +366,12 @@ export class AttendanceService {
       SELECT 
         a.*,
         e.title as event_title,
-        e.public_code as event_public_code
+        e.public_code as event_public_code,
+        att.full_name as attendee_name,
+        att.base_name as attendee_base
       FROM attendances a
       JOIN events e ON a.event_id = e.id
+      LEFT JOIN attendees att ON a.dni = att.dni
     `;
     const params: Record<string, any> = {};
 

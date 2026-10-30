@@ -68,7 +68,19 @@ CREATE TABLE IF NOT EXISTS attendances (
 CREATE INDEX IF NOT EXISTS idx_attendances_event_dni ON attendances(event_id, dni);
 CREATE INDEX IF NOT EXISTS idx_attendances_dni ON attendances(dni);
 
--- 4. Trigger: Prevent recording attendance if event is not OPEN
+-- 4. Attendees directory (Padrón de asistentes con nombre y base)
+CREATE TABLE IF NOT EXISTS attendees (
+    dni TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    base_name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    CHECK (length(dni) = 8 AND dni NOT GLOB '*[^0-9]*')
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_attendees_base ON attendees(base_name);
+
+-- 5. Trigger: Prevent recording attendance if event is not OPEN
 CREATE TRIGGER IF NOT EXISTS trg_block_attendance_when_not_open
 BEFORE INSERT ON attendances
 FOR EACH ROW

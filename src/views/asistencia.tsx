@@ -305,6 +305,59 @@ export function AttendanceView({ event, initialAttendance }: AttendanceViewProps
                     </p>
                   </div>
 
+                  {/* Badge de Asistente Reconocido en el Padrón */}
+                  <div id="attendeeKnownBadge" class="hidden p-3 rounded-xl bg-blue-950/40 border border-blue-800/40 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                      <div class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 animate-pulse"></div>
+                      <span id="attendeeKnownName" class="font-semibold text-white truncate"></span>
+                      <span class="text-neutral-500">&bull;</span>
+                      <span id="attendeeKnownBase" class="text-neutral-300 font-mono text-[11px] truncate"></span>
+                    </div>
+                    <span class="text-[10px] text-blue-400 font-medium px-2 py-0.5 rounded-full bg-blue-900/40 border border-blue-700/40 flex-shrink-0">
+                      Padrón ✓
+                    </span>
+                  </div>
+
+                  {/* Campos de Primera Asistencia (Padrón) */}
+                  <div id="firstTimeFields" class="hidden space-y-3 pt-1">
+                    <div class="p-3 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-neutral-300 flex items-start gap-2.5">
+                      <svg class="w-4 h-4 text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <div class="font-medium text-white">Primera asistencia con este DNI</div>
+                        <div class="text-[11px] text-neutral-400 mt-0.5">Ingresa tus datos una sola vez para memorizarlos en el padrón.</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label for="fullNameInput" class="block text-xs font-semibold text-neutral-300 mb-1">
+                        Nombre y Apellidos <span class="text-blue-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="fullNameInput"
+                        name="full_name"
+                        placeholder="Ej: Juan Pérez García"
+                        autocomplete="name"
+                        class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3.5 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label for="baseNameInput" class="block text-xs font-semibold text-neutral-300 mb-1">
+                        Base o Sede <span class="text-blue-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="baseNameInput"
+                        name="base_name"
+                        placeholder="Ej: Base Central / Filial Norte"
+                        class="w-full bg-neutral-800 border border-neutral-700/80 rounded-xl text-white text-sm py-2.5 px-3.5 placeholder:text-neutral-600 focus:bg-neutral-800 focus:border-blue-500/80 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     id="submitBtn"

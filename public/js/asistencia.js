@@ -13,7 +13,16 @@
       gpsDot = $("gpsDot"),
       gpsChip = $("gpsChip"),
       refreshBtn = $("refreshBtn"),
-      refreshIcon = $("refreshIcon");
+      refreshIcon = $("refreshIcon"),
+      attendeeKnownBadge = $("attendeeKnownBadge"),
+      attendeeKnownName = $("attendeeKnownName"),
+      attendeeKnownBase = $("attendeeKnownBase"),
+      firstTimeFields = $("firstTimeFields"),
+      fullNameInput = $("fullNameInput"),
+      baseNameInput = $("baseNameInput");
+
+  var isAttendeeRegistered = null;
+  var lookupTimer = null;
 
   var code = window.__EVENT_CODE__ || "";
   window.__LAST_COORDS__ = null;
@@ -191,12 +200,52 @@
       dniInput.disabled = true;
       dniInput.classList.add("opacity-75", "cursor-not-allowed");
     }
+    if (firstTimeFields) {
+      firstTimeFields.classList.add("hidden");
+    }
     if (submitBtn) {
       submitBtn.dataset.action = "CHECK_OUT";
       submitBtn.disabled = !navigator.onLine;
       submitBtn.className = "w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-[15px] rounded-xl cursor-pointer shadow-lg shadow-emerald-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5";
       if (btnText) btnText.textContent = "Marcar salida";
     }
+    if (dni && dni.length === 8) {
+      lookupDni(dni);
+    }
+  }
+
+  // Consulta ultrarrápida al padrón para verificar si ya está registrado
+  async function lookupDni(dni) {
+    if (!dni || dni.length !== 8) {
+      isAttendeeRegistered = null;
+      if (attendeeKnownBadge) attendeeKnownBadge.classList.add("hidden");
+      if (firstTimeFields) firstTimeFields.classList.add("hidden");
+      syncBtn();
+      return;
+    }
+
+    try {
+      var r = await fetch("/asistir/lookup/" + encodeURIComponent(dni));
+      var d = await r.json();
+      if (d && d.success) {
+        if (d.registered) {
+          isAttendeeRegistered = true;
+          if (attendeeKnownBadge) {
+            if (attendeeKnownName) attendeeKnownName.textContent = d.full_name || "Asistente";
+            if (attendeeKnownBase) attendeeKnownBase.textContent = d.base_name || "";
+            attendeeKnownBadge.classList.remove("hidden");
+          }
+          if (firstTimeFields) firstTimeFields.classList.add("hidden");
+        } else {
+          isAttendeeRegistered = false;
+          if (attendeeKnownBadge) attendeeKnownBadge.classList.add("hidden");
+          if (submitBtn && submitBtn.dataset.action !== "CHECK_OUT") {
+            if (firstTimeFields) firstTimeFields.classList.remove("hidden");
+          }
+        }
+      }
+    } catch (_) {}
+    syncBtn();
   }
 
   // Hydrate checkout state from localStorage if not rendered by server
@@ -215,14 +264,32 @@
     setCheckoutMode(initialAtt.dni, formatTime(initialAtt.created_at));
   }
 
-  // 5. Input DNI
+  // 5. Input DNI y validación de padrón
   if (dniInput) {
     dniInput.addEventListener("input", function(e) {
       var v = e.target.value.replace(/[^0-9]/g, "");
       if (v.length > 8) v = v.slice(0, 8);
       if (e.target.value !== v) e.target.value = v;
+
+      clearTimeout(lookupTimer);
+      if (v.length === 8) {
+        lookupTimer = setTimeout(function() {
+          lookupDni(v);
+        }, 150);
+      } else {
+        isAttendeeRegistered = null;
+        if (attendeeKnownBadge) attendeeKnownBadge.classList.add("hidden");
+        if (firstTimeFields) firstTimeFields.classList.add("hidden");
+      }
       syncBtn();
     });
+  }
+
+  if (fullNameInput) {
+    fullNameInput.addEventListener("input", syncBtn);
+  }
+  if (baseNameInput) {
+    baseNameInput.addEventListener("input", syncBtn);
   }
 
   function syncBtn() {
@@ -231,7 +298,14 @@
       submitBtn.disabled = !navigator.onLine || !!submitBtn.dataset.busy;
       return;
     }
-    var ok = dniInput.value.length === 8 && navigator.onLine && !submitBtn.dataset.busy;
+    var dniOk = dniInput.value.length === 8;
+    var extraOk = true;
+    if (isAttendeeRegistered === false) {
+      var fn = fullNameInput ? fullNameInput.value.trim() : "";
+      var bn = baseNameInput ? baseNameInput.value.trim() : "";
+      extraOk = fn.length >= 2 && bn.length >= 2;
+    }
+    var ok = dniOk && extraOk && navigator.onLine && !submitBtn.dataset.busy;
     submitBtn.disabled = !ok;
     submitBtn.className = ok
       ? "w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-[15px] rounded-xl cursor-pointer shadow-lg shadow-blue-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5"
@@ -298,13 +372,34 @@
     var isCheckout = submitBtn && submitBtn.dataset.action === "CHECK_OUT";
     busy(true, isCheckout ? "Registrando salida..." : "Registrando entrada...");
     try {
+      var payload = {
+        dni: dni,
+        latitude: lat,
+        longitude: lng,
+        accuracy: acc
+      };
+      if (isAttendeeRegistered === false) {
+        if (fullNameInput) payload.full_name = fullNameInput.value.trim();
+        if (baseNameInput) payload.base_name = baseNameInput.value.trim();
+      }
+
       var r = await fetch("/asistir/" + encodeURIComponent(code), {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ dni: dni, latitude: lat, longitude: lng, accuracy: acc })
+        body: JSON.stringify(payload)
       });
       var d = await r.json();
       if (r.ok && d.success) {
+        if (d.details && d.details.full_name) {
+          isAttendeeRegistered = true;
+          if (attendeeKnownBadge) {
+            if (attendeeKnownName) attendeeKnownName.textContent = d.details.full_name;
+            if (attendeeKnownBase) attendeeKnownBase.textContent = d.details.base_name || "";
+            attendeeKnownBadge.classList.remove("hidden");
+          }
+          if (firstTimeFields) firstTimeFields.classList.add("hidden");
+        }
+
         if (d.action === "CHECK_IN") {
           // Persist in localStorage for recovery
           try {

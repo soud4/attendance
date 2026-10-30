@@ -3,7 +3,7 @@ import type { EventWithStats } from "../../services/event.service";
 
 interface EventDetailViewProps {
   event: EventWithStats;
-  attendances: Attendance[];
+  attendances: (Attendance & { attendee_name?: string | null; attendee_base?: string | null })[];
 }
 
 export function EventDetailView({ event, attendances }: EventDetailViewProps) {
@@ -223,6 +223,13 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                     </span>
                   </div>
 
+                  {att.attendee_name && (
+                    <div class="text-xs font-semibold text-white">
+                      {att.attendee_name}
+                      {att.attendee_base && <span class="text-neutral-400 font-normal ml-1">({att.attendee_base})</span>}
+                    </div>
+                  )}
+
                   <div class="flex flex-col gap-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-1.5">
@@ -266,6 +273,7 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                   <tr>
                     <th scope="col" class="py-3 px-4">#</th>
                     <th scope="col" class="py-3 px-4">DNI</th>
+                    <th scope="col" class="py-3 px-4">Asistente</th>
                     <th scope="col" class="py-3 px-4">Entrada</th>
                     <th scope="col" class="py-3 px-4">Salida</th>
                     <th scope="col" class="py-3 px-4">Distancia al Centro</th>
@@ -278,6 +286,10 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                     <tr class="hover:bg-neutral-800/30 transition-colors">
                       <td class="py-3 px-4 font-mono text-neutral-500 text-[11px]">{idx + 1}</td>
                       <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider">{att.dni}</td>
+                      <td class="py-3 px-4 text-xs">
+                        <div class="font-semibold text-white">{att.attendee_name || "-"}</div>
+                        {att.attendee_base && <div class="text-[10px] text-neutral-400 font-mono">{att.attendee_base}</div>}
+                      </td>
                       <td class="py-3 px-4 font-mono text-neutral-300 text-xs">
                         {new Date(att.created_at).toLocaleString("es-PE", {
                           day: "2-digit",

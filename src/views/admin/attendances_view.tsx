@@ -102,6 +102,13 @@ export function AttendancesView({
                     </a>
                   </div>
 
+                  {att.attendee_name && (
+                    <div class="text-xs font-semibold text-white">
+                      {att.attendee_name}
+                      {att.attendee_base && <span class="text-neutral-400 font-normal ml-1">({att.attendee_base})</span>}
+                    </div>
+                  )}
+
                   <div class="attendee-event text-xs font-semibold text-neutral-200">
                     <div>{att.event_title}</div>
                     <div class="text-[10px] font-mono text-neutral-500 font-normal">{att.event_public_code}</div>
@@ -149,6 +156,7 @@ export function AttendancesView({
                 <thead class="bg-neutral-950/60 border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider font-semibold">
                   <tr>
                     <th scope="col" class="py-3 px-4">DNI</th>
+                    <th scope="col" class="py-3 px-4">Asistente</th>
                     <th scope="col" class="py-3 px-4">Evento</th>
                     <th scope="col" class="py-3 px-4">Entrada</th>
                     <th scope="col" class="py-3 px-4">Salida</th>
@@ -163,6 +171,11 @@ export function AttendancesView({
                     <tr class="attendance-row hover:bg-neutral-800/30 transition-colors">
                       <td class="py-3 px-4 font-mono font-bold text-white text-xs tracking-wider attendee-dni">
                         {att.dni}
+                      </td>
+
+                      <td class="py-3 px-4 text-xs">
+                        <div class="font-semibold text-white">{att.attendee_name || "-"}</div>
+                        {att.attendee_base && <div class="text-[10px] text-neutral-400 font-mono">{att.attendee_base}</div>}
                       </td>
 
                       <td class="py-3 px-4 font-medium text-white attendee-event max-w-xs truncate">

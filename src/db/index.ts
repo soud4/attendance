@@ -47,6 +47,14 @@ export interface Attendance {
   check_out_at: string | null;
 }
 
+export interface Attendee {
+  dni: string;
+  full_name: string;
+  base_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * DatabaseConnection Singleton Manager
  * Encapsulates the embedded SQLite lifecycle, PRAGMA configuration,
@@ -145,5 +153,22 @@ export function initSchema(db: Database): void {
     }
   } catch {
     // Ignore if table does not exist yet
+  }
+
+  // Safe migration: ensure attendees table exists
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS attendees (
+        dni TEXT PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        base_name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (length(dni) = 8 AND dni NOT GLOB '*[^0-9]*')
+      ) STRICT;
+      CREATE INDEX IF NOT EXISTS idx_attendees_base ON attendees(base_name);
+    `);
+  } catch {
+    // Ignore if already created
   }
 }

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { AttendanceService } from "../services/attendance.service";
+import { AttendeeService } from "../services/attendee.service";
 import { EventService, isEventExpired } from "../services/event.service";
 import { AttendanceView } from "../views/asistencia";
 import { renderNotFoundView } from "../views/errors/error_view";
@@ -11,9 +12,43 @@ import {
   AttendanceAlreadyRegisteredError,
   InvalidDniError,
   InvalidCoordinatesError,
+  ValidationError,
 } from "../services/errors";
 
 export class AttendanceController {
+  /**
+   * GET /asistir/lookup/:dni - Query directory (padrón) to check if attendee is already registered
+   */
+  public static lookupDni(c: Context) {
+    const dni = String(c.req.param("dni") || "").trim();
+    if (!/^\d{8}$/.test(dni)) {
+      return c.json(
+        {
+          success: false,
+          error: "El DNI debe contener exactamente 8 dígitos numéricos.",
+        },
+        400
+      );
+    }
+
+    const attendee = AttendeeService.findByDni(dni);
+    if (attendee) {
+      return c.json({
+        success: true,
+        registered: true,
+        dni: attendee.dni,
+        full_name: attendee.full_name,
+        base_name: attendee.base_name,
+      });
+    }
+
+    return c.json({
+      success: true,
+      registered: false,
+      dni,
+    });
+  }
+
   /**
    * GET /asistir/:code - Render public attendance view for the event
    */
@@ -95,7 +130,7 @@ export class AttendanceController {
       );
     }
 
-    const { dni, latitude, longitude, accuracy } = body;
+    const { dni, latitude, longitude, accuracy, full_name, base_name } = body;
     const ipAddress =
       c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "127.0.0.1";
     const userAgent = c.req.header("user-agent") || "Unknown";
@@ -107,6 +142,8 @@ export class AttendanceController {
         latitude,
         longitude,
         accuracy,
+        fullName: full_name,
+        baseName: base_name,
         ipAddress,
         userAgent,
       });
@@ -130,6 +167,8 @@ export class AttendanceController {
         details: {
           attendance_id: result.attendanceId,
           dni: result.dni,
+          full_name: result.fullName,
+          base_name: result.baseName,
           action: result.action,
           distance_meters: result.distanceMeters,
           recorded_at: result.recordedAt,
@@ -141,6 +180,9 @@ export class AttendanceController {
     } catch (err) {
       if (err instanceof InvalidDniError) {
         return c.json({ success: false, title: "DNI no válido", error: err.message }, 400);
+      }
+      if (err instanceof ValidationError) {
+        return c.json({ success: false, title: "Dato requerido", error: err.message }, 400);
       }
       if (err instanceof InvalidCoordinatesError) {
         return c.json({ success: false, title: "Ubicación inválida", error: err.message }, 400);
