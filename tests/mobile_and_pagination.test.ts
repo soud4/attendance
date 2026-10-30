@@ -227,9 +227,9 @@ describe("Mobile UI Optimization & Cursor Pagination", () => {
       expect(html).toContain("Contraseña <span class=\"text-blue-400\">*</span>");
       expect(html).toContain("+ Crear");
 
-      // Form alignment classes
-      expect(html).toContain("flex items-end gap-2");
-      expect(html).toContain("h-10");
+      // Modal fullscreen and responsive classes
+      expect(html).toContain("userCreateModal");
+      expect(html).toContain("userEditModal");
 
       // Mobile cards vs desktop table
       expect(html).toContain("block md:hidden");

@@ -20,6 +20,12 @@ export interface CreateUserInput {
   role?: "ADMIN" | "STAFF";
 }
 
+export interface UpdateUserInput {
+  full_name?: string;
+  role?: "ADMIN" | "STAFF";
+  password?: string;
+}
+
 export interface UserPaginationOptions {
   cursor?: number | null;
   limit?: number | null;
@@ -136,12 +142,77 @@ export class UserService {
   }
 
   /**
-   * Toggle user active status (ACTIVE <-> INACTIVE)
+   * Update an existing user (name, role, optional password)
    */
-  public static toggleStatus(id: number): { user: User; newStatus: "ACTIVE" | "INACTIVE" } {
+  public static async update(
+    id: number,
+    input: UpdateUserInput,
+    requestingUserId?: number
+  ): Promise<User> {
     const user = this.getById(id);
     if (!user) {
       throw new UserNotFoundError(String(id));
+    }
+
+    const fullName = input.full_name !== undefined ? String(input.full_name).trim() : user.full_name;
+    if (!fullName || fullName.length < MIN_FULL_NAME_LENGTH) {
+      throw new ValidationError(`El nombre completo debe tener al menos ${MIN_FULL_NAME_LENGTH} caracteres.`);
+    }
+
+    const role = input.role || user.role;
+    // Protect superadmin from demotion
+    if (user.identifier === SUPER_ADMIN_IDENTIFIER && role !== "ADMIN") {
+      throw new ValidationError("No se puede revocar el rol de Administrador a la cuenta principal.");
+    }
+
+    const db = getDatabase();
+
+    if (input.password && input.password.trim().length > 0) {
+      const cleanPass = input.password.trim();
+      if (cleanPass.length < MIN_PASSWORD_LENGTH) {
+        throw new ValidationError(`La nueva contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+      }
+      const passwordHash = await hashPassword(cleanPass);
+      db.prepare(`
+        UPDATE users
+        SET full_name = $full_name, role = $role, password_hash = $password_hash
+        WHERE id = $id;
+      `).run({
+        $full_name: fullName,
+        $role: role,
+        $password_hash: passwordHash,
+        $id: id,
+      });
+    } else {
+      db.prepare(`
+        UPDATE users
+        SET full_name = $full_name, role = $role
+        WHERE id = $id;
+      `).run({
+        $full_name: fullName,
+        $role: role,
+        $id: id,
+      });
+    }
+
+    return this.getById(id)!;
+  }
+
+  /**
+   * Toggle user active status (ACTIVE <-> INACTIVE)
+   */
+  public static toggleStatus(id: number, requestingUserId?: number): { user: User; newStatus: "ACTIVE" | "INACTIVE" } {
+    const user = this.getById(id);
+    if (!user) {
+      throw new UserNotFoundError(String(id));
+    }
+
+    if (user.identifier === SUPER_ADMIN_IDENTIFIER) {
+      throw new ValidationError("No se puede desactivar la cuenta del Administrador Principal.");
+    }
+
+    if (requestingUserId && user.id === requestingUserId) {
+      throw new ValidationError("No puedes desactivar tu propia cuenta en sesión activa.");
     }
 
     const newStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
@@ -159,7 +230,7 @@ export class UserService {
   /**
    * Delete a user
    */
-  public static delete(id: number): boolean {
+  public static delete(id: number, requestingUserId?: number): boolean {
     const user = this.getById(id);
     if (!user) {
       throw new UserNotFoundError(String(id));
@@ -168,6 +239,10 @@ export class UserService {
     // Protect initial admin 00000000 from accidental deletion
     if (user.identifier === SUPER_ADMIN_IDENTIFIER) {
       throw new ValidationError("No se puede eliminar la cuenta del Administrador Principal.");
+    }
+
+    if (requestingUserId && user.id === requestingUserId) {
+      throw new ValidationError("No puedes eliminar tu propia cuenta en sesión activa.");
     }
 
     const db = getDatabase();

@@ -123,6 +123,127 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         </div>
       </div>
 
+      {/* Search, Status Tabs, Date Filter & Sorting Toolbar */}
+      {events.length > 0 && (
+        <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
+          {/* Top Row: Search Input + Date Filter + Order Switcher */}
+          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+            {/* Search Input */}
+            <div class="relative flex-1">
+              <svg class="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                id="eventSearchInput"
+                placeholder="Buscar por título, sede o código..."
+                oninput="filterAndSortEvents()"
+                class="w-full bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-white text-xs pl-10 pr-4 py-2.5 placeholder:text-neutral-500 focus:border-blue-500/80 focus:outline-none"
+              />
+            </div>
+
+            <div class="flex items-center gap-2">
+              {/* Date Filter */}
+              <div class="relative flex items-center">
+                <input
+                  type="date"
+                  id="eventDateFilter"
+                  onchange="filterAndSortEvents()"
+                  title="Filtrar por fecha del evento"
+                  class="bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-neutral-300 text-xs px-2.5 py-2 focus:border-blue-500/80 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  id="eventDateClearBtn"
+                  onclick="clearEventDateFilter()"
+                  title="Limpiar fecha"
+                  class="hidden ml-1 p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-white text-xs cursor-pointer"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Order Toggle: Recientes / Antiguos */}
+              <button
+                type="button"
+                id="eventOrderToggleBtn"
+                onclick="toggleEventOrder()"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/80 text-white text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+                title="Cambiar orden por creación"
+              >
+                <svg id="eventOrderIcon" class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+                <span id="eventOrderLabel">Recientes</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Row: Status Tabs + Counter */}
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-800/70">
+            {/* Status Tabs */}
+            <div class="flex items-center gap-1.5" id="eventStatusTabs">
+              <button
+                type="button"
+                onclick="setEventStatusTab('ALL')"
+                data-tab="ALL"
+                class="event-tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-neutral-800 border-neutral-700 text-white shadow-sm flex items-center gap-1.5"
+              >
+                <span>Todos</span>
+                <span class="px-1.5 py-0.2 rounded-md bg-neutral-700/60 text-[10px] text-neutral-300 font-mono">{totalEvents}</span>
+              </button>
+
+              <button
+                type="button"
+                onclick="setEventStatusTab('OPEN')"
+                data-tab="OPEN"
+                class="event-tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-transparent text-neutral-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Abiertos</span>
+                <span class="px-1.5 py-0.2 rounded-md bg-neutral-800 text-[10px] text-neutral-400 font-mono">{openEvents}</span>
+              </button>
+
+              <button
+                type="button"
+                onclick="setEventStatusTab('CLOSED')"
+                data-tab="CLOSED"
+                class="event-tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold border border-transparent text-neutral-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-neutral-500"></span>
+                <span>Cerrados</span>
+                <span class="px-1.5 py-0.2 rounded-md bg-neutral-800 text-[10px] text-neutral-400 font-mono">{totalEvents - openEvents}</span>
+              </button>
+            </div>
+
+            {/* Results counter */}
+            <div class="text-[11px] text-neutral-400 font-mono">
+              Mostrando <strong id="eventVisibleCount" class="text-white">{events.length}</strong> de {events.length} eventos
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty Filter Results Message */}
+      <div id="eventEmptyFilterMessage" class="hidden p-10 text-center bg-neutral-900 border border-neutral-800 rounded-2xl">
+        <div class="w-10 h-10 rounded-xl bg-neutral-800 text-neutral-500 flex items-center justify-center mx-auto mb-2">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <p class="text-xs font-semibold text-white">No se encontraron eventos</p>
+        <p class="text-[11px] text-neutral-400 mt-1">Ningún evento coincide con los filtros aplicados.</p>
+        <button
+          type="button"
+          onclick="resetEventFilters()"
+          class="mt-3 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold cursor-pointer"
+        >
+          Limpiar filtros
+        </button>
+      </div>
+
       {/* Main Content: Cards or Table */}
       {events.length === 0 ? (
         <div class="p-12 text-center bg-neutral-900 border border-neutral-800 rounded-2xl">
@@ -146,16 +267,25 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         /* TABLE VIEW CONTAINER: Mobile Compressed Cards + Desktop Full Table */
         <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
           {/* Mobile Compressed Cards (block md:hidden) */}
-          <div class="block md:hidden divide-y divide-neutral-800/70">
+          <div class="block md:hidden divide-y divide-neutral-800/70" id="eventTableMobileContainer">
             {events.map((event) => {
               const isOpen = event.status === "OPEN";
               const schedule =
                 event.starts_at && event.ends_at
                   ? `${event.starts_at} - ${event.ends_at}`
                   : event.starts_at || event.ends_at || "—";
+              const eventDate = event.starts_at ? event.starts_at.slice(0, 10) : (event.created_at ? event.created_at.slice(0, 10) : "");
 
               return (
-                <div class="p-4 space-y-2.5">
+                <div
+                  class="event-item p-4 space-y-2.5"
+                  data-id={event.id}
+                  data-title={event.title.toLowerCase()}
+                  data-location={(event.location_name || "").toLowerCase()}
+                  data-code={event.public_code.toLowerCase()}
+                  data-status={event.status}
+                  data-date={eventDate}
+                >
                   {/* Top Bar: Badge, Code & Attendees */}
                   <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
@@ -280,16 +410,25 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
                   <th scope="col" class="py-3.5 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-neutral-800/70">
+              <tbody class="divide-y divide-neutral-800/70" id="eventTableBody">
                 {events.map((event) => {
                   const isOpen = event.status === "OPEN";
                   const schedule =
                     event.starts_at && event.ends_at
                       ? `${event.starts_at} - ${event.ends_at}`
                       : event.starts_at || event.ends_at || "—";
+                  const eventDate = event.starts_at ? event.starts_at.slice(0, 10) : (event.created_at ? event.created_at.slice(0, 10) : "");
 
                   return (
-                    <tr class="hover:bg-neutral-800/40 transition-colors">
+                    <tr
+                      class="event-item hover:bg-neutral-800/40 transition-colors"
+                      data-id={event.id}
+                      data-title={event.title.toLowerCase()}
+                      data-location={(event.location_name || "").toLowerCase()}
+                      data-code={event.public_code.toLowerCase()}
+                      data-status={event.status}
+                      data-date={eventDate}
+                    >
                       <td class="py-3.5 px-4 whitespace-nowrap">
                         {isOpen ? (
                           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
@@ -403,16 +542,25 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
         </div>
       ) : (
         /* CARDS VIEW */
-        <div class="space-y-4">
+        <div class="space-y-4" id="eventCardsContainer">
           {events.map((event) => {
             const isOpen = event.status === "OPEN";
             const schedule =
               event.starts_at && event.ends_at
                 ? `${event.starts_at} a ${event.ends_at}`
                 : event.starts_at || event.ends_at || "Horario no especificado";
+            const eventDate = event.starts_at ? event.starts_at.slice(0, 10) : (event.created_at ? event.created_at.slice(0, 10) : "");
 
             return (
-              <div class="bg-neutral-900 border border-neutral-800/80 rounded-2xl p-5 sm:p-6 shadow-sm hover:border-neutral-700/80 transition-all">
+              <div
+                class="event-item bg-neutral-900 border border-neutral-800/80 rounded-2xl p-5 sm:p-6 shadow-sm hover:border-neutral-700/80 transition-all"
+                data-id={event.id}
+                data-title={event.title.toLowerCase()}
+                data-location={(event.location_name || "").toLowerCase()}
+                data-code={event.public_code.toLowerCase()}
+                data-status={event.status}
+                data-date={eventDate}
+              >
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   {/* Info Primaria */}
                   <div class="space-y-2">
@@ -694,6 +842,119 @@ export function DashboardView({ events, noticeMessage, currentView = "cards" }: 
           document.addEventListener("keydown", function(e) {
             if (e.key === "Escape") closeQuickCreateModal();
           });
+
+          let activeEventTab = "ALL";
+          let activeEventOrder = "DESC";
+
+          function setEventStatusTab(status) {
+            activeEventTab = status;
+            document.querySelectorAll(".event-tab-btn").forEach(btn => {
+              if (btn.getAttribute("data-tab") === status) {
+                btn.classList.add("bg-neutral-800", "border-neutral-700", "text-white", "shadow-sm");
+                btn.classList.remove("border-transparent", "text-neutral-400");
+              } else {
+                btn.classList.remove("bg-neutral-800", "border-neutral-700", "text-white", "shadow-sm");
+                btn.classList.add("border-transparent", "text-neutral-400");
+              }
+            });
+            filterAndSortEvents();
+          }
+
+          function clearEventDateFilter() {
+            const dateInput = document.getElementById("eventDateFilter");
+            if (dateInput) dateInput.value = "";
+            const clearBtn = document.getElementById("eventDateClearBtn");
+            if (clearBtn) clearBtn.classList.add("hidden");
+            filterAndSortEvents();
+          }
+
+          function toggleEventOrder() {
+            activeEventOrder = activeEventOrder === "DESC" ? "ASC" : "DESC";
+            const label = document.getElementById("eventOrderLabel");
+            if (label) label.textContent = activeEventOrder === "DESC" ? "Recientes" : "Antiguos";
+            filterAndSortEvents();
+          }
+
+          function resetEventFilters() {
+            const searchInput = document.getElementById("eventSearchInput");
+            if (searchInput) searchInput.value = "";
+            clearEventDateFilter();
+            setEventStatusTab("ALL");
+          }
+
+          function filterAndSortEvents() {
+            const searchInput = document.getElementById("eventSearchInput");
+            const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
+
+            const dateInput = document.getElementById("eventDateFilter");
+            const selectedDate = dateInput ? dateInput.value : "";
+
+            const clearBtn = document.getElementById("eventDateClearBtn");
+            if (clearBtn) {
+              if (selectedDate) clearBtn.classList.remove("hidden");
+              else clearBtn.classList.add("hidden");
+            }
+
+            // Sort containers
+            const cardsContainer = document.getElementById("eventCardsContainer");
+            const mobileContainer = document.getElementById("eventTableMobileContainer");
+            const tableBody = document.getElementById("eventTableBody");
+
+            function sortContainer(container) {
+              if (!container) return;
+              const items = Array.from(container.children).filter(el => el.classList.contains("event-item"));
+              items.sort((a, b) => {
+                const idA = parseInt(a.getAttribute("data-id") || "0", 10);
+                const idB = parseInt(b.getAttribute("data-id") || "0", 10);
+                return activeEventOrder === "DESC" ? idB - idA : idA - idB;
+              });
+              items.forEach(el => container.appendChild(el));
+            }
+
+            sortContainer(cardsContainer);
+            sortContainer(mobileContainer);
+            sortContainer(tableBody);
+
+            // Filter items
+            const allItems = document.querySelectorAll(".event-item");
+            allItems.forEach(item => {
+              const title = item.getAttribute("data-title") || "";
+              const location = item.getAttribute("data-location") || "";
+              const code = item.getAttribute("data-code") || "";
+              const status = item.getAttribute("data-status") || "";
+              const date = item.getAttribute("data-date") || "";
+
+              const matchesStatus = activeEventTab === "ALL" || status === activeEventTab;
+              const matchesSearch = !query || title.includes(query) || location.includes(query) || code.includes(query);
+              const matchesDate = !selectedDate || date === selectedDate || date.startsWith(selectedDate);
+
+              if (matchesStatus && matchesSearch && matchesDate) {
+                item.style.display = "";
+              } else {
+                item.style.display = "none";
+              }
+            });
+
+            // Calculate visible count
+            let visibleCount = 0;
+            if (cardsContainer) {
+              visibleCount = cardsContainer.querySelectorAll(".event-item:not([style*='display: none'])").length;
+            } else if (tableBody) {
+              const isDesktop = window.innerWidth >= 768;
+              visibleCount = isDesktop
+                ? tableBody.querySelectorAll(".event-item:not([style*='display: none'])").length
+                : (mobileContainer ? mobileContainer.querySelectorAll(".event-item:not([style*='display: none'])").length : 0);
+            }
+
+            const countEl = document.getElementById("eventVisibleCount");
+            if (countEl) countEl.textContent = visibleCount;
+
+            const emptyMsg = document.getElementById("eventEmptyFilterMessage");
+            if (emptyMsg) {
+              if (visibleCount === 0) emptyMsg.classList.remove("hidden");
+              else emptyMsg.classList.add("hidden");
+            }
+          }
 
           function copyLink(path, btn) {
             const fullUrl = window.location.origin + path;

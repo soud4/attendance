@@ -72,6 +72,23 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
     - **No pulseables**: Bloqueados con `cursor-not-allowed` y sin enlace activo, impidiendo accesos indebidos a eventos concluidos.
 - **Diseño Responsive**: Cuadrícula de 2 columnas en desktop/tablet y 1 columna en móvil en [`WelcomeView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/public/welcome_view.tsx).
 
+#### J. Reconocimiento Automático de Asistentes (Directorio Central `attendees`)
+- **Directorio Centralizado**: Tabla `attendees` que vincula DNI con `full_name` y `base_name`.
+- **Progressive Disclosure en Marcación**:
+  - **Primera Asistencia**: Al ingresar un DNI nuevo, el formulario despliega de forma dinámica los campos *"Nombre Completo"* y *"Base o Sede"*.
+  - **Asistentes Recurrentes**: Endpoint reactivo [`GET /asistir/lookup/:dni`](file:///home/souda/Laboratory/bandera-asistencia/src/routes/asistencia.ts). Al tipear el octavo dígito, reconoce automáticamente a la persona mostrando un badge verde (`✓ Juan Pérez • Base Callao`) y ocultando los campos redundantes, requiriendo únicamente el DNI para marcar.
+
+#### K. CRUD Completo de Coordinadores y Filtros Reactivos en Modo Mobile
+- **CRUD Completo de Coordinadores (`/admin/users`)**:
+  - **Creación**: Modal fullscreen en móvil (`#userCreateModal`) con validación de DNI numérico de 8 dígitos y selector de rol.
+  - **Edición**: Modal fullscreen en móvil (`#userEditModal`), ruta backend [`POST /admin/users/:id/edit`](file:///home/souda/Laboratory/bandera-asistencia/src/routes/admin/users.ts) y método [`UserService.update`](file:///home/souda/Laboratory/bandera-asistencia/src/services/user.service.ts). Permite actualizar nombre y rol, además de cambio opcional de contraseña con Argon2id.
+  - **Eliminación y Alternancia**: Modal oscuro de confirmación (`#userDeleteModal`).
+  - **Salvaguardas de Seguridad**: Protección contra auto-eliminación y auto-desactivación del usuario en sesión, y protección permanente de la cuenta del Administrador Principal (`00000000`).
+- **Filtros Reactivos Unificados en Tiempo Real (0ms de latencia)**:
+  - **Eventos (`/admin`)**: Buscador por nombre/sede/código (`#eventSearchInput`), tabs compactas de estado (*Todos*, *Abiertos*, *Cerrados*), filtro por fecha (`#eventDateFilter`) y toggle de orden de creación (*Recientes* / *Antiguos*).
+  - **Asistencias (`/admin/attendances`)**: Buscador por DNI/asistente/evento (`#attendanceFilterInput`), filtro por fecha de marcación (`#attendanceDateFilter`), toggle de orden de creación y tarjetas móviles optimizadas en 3 niveles con iconos SVG limpios (cero emojis).
+  - **Coordinadores (`/admin/users`)**: Buscador por DNI/nombre (`#userSearchInput`), tabs por rol (*Todos*, *ADMIN*, *STAFF*), filtro por fecha y orden de creación.
+
 ---
 
 ### 3. Verificación de Calidad
@@ -79,21 +96,22 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
 ```bash
 # Verificación de TypeScript
 $ bun run typecheck
-✓ No type errors in 48 files [112.11ms]
+✓ No type errors in 49 files [73.97ms]
 
 # Compilación de estilos
 $ bun run build:css
 ≈ tailwindcss v4.3.3
-Done in 67ms
+Done in 69ms
 
 # Suite Completa de Tests
 $ bun test
- 96 pass
+ 107 pass
  0 fail
- 402 expect() calls
-Ran 96 tests across 9 files. [3.78s]
+ 461 expect() calls
+Ran 107 tests across 10 files. [5.81s]
 ```
 
+- `tests/filters_and_coordinator_crud.test.ts`: 11 tests (CRUD completo de coordinadores, salvaguardas de auto-protección y superadmin, controles de filtrado y atributos en eventos, usuarios y asistencias).
 - `tests/public_events.test.ts`: 4 tests (Límite de 4 eventos, orden DESC, enlaces pulseables solo si activo y bordes esmeralda).
 - `tests/attendance_checkout.test.ts`: 6 tests (Flujo completo Check-in, Check-out, geocerca de salida, cookie y rehidratación).
 - `tests/attendance.test.ts`: 8 tests (Validación Haversine, formato DNI, check-in/check-out y unicidad).

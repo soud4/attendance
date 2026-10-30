@@ -17,7 +17,7 @@ export class UsersController {
 
     return c.html(
       <AdminLayout title="Gestión de Coordinadores" user={user} activePath="/admin/users">
-        <UsersView users={users} noticeMessage={notice} errorMessage={error} />
+        <UsersView users={users} currentUser={user} noticeMessage={notice} errorMessage={error} />
       </AdminLayout>
     );
   }
@@ -52,7 +52,7 @@ export class UsersController {
 
       return c.html(
         <AdminLayout title="Gestión de Coordinadores" user={user} activePath="/admin/users">
-          <UsersView users={users} errorMessage={message} />
+          <UsersView users={users} currentUser={user} errorMessage={message} />
         </AdminLayout>,
         statusCode as any
       );
@@ -60,13 +60,46 @@ export class UsersController {
   }
 
   /**
+   * POST /admin/users/:id/edit - Update existing coordinator
+   */
+  public static async edit(c: Context) {
+    const user = c.get("user") as UserSession;
+    const id = Number(c.req.param("id"));
+    const body = await c.req.parseBody();
+
+    const fullName = String(body.full_name || "").trim();
+    const role = body.role ? (String(body.role) as "ADMIN" | "STAFF") : undefined;
+    const password = body.password ? String(body.password) : undefined;
+
+    try {
+      const updated = await UserService.update(
+        id,
+        {
+          full_name: fullName,
+          role,
+          password,
+        },
+        user.id
+      );
+
+      return c.redirect(
+        `/admin/users?notice=Coordinador+«${encodeURIComponent(updated.full_name)}»+actualizado+exitosamente`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al actualizar el usuario.";
+      return c.redirect(`/admin/users?error=${encodeURIComponent(message)}`);
+    }
+  }
+
+  /**
    * POST /admin/users/:id/toggle - Toggle user active status
    */
   public static toggle(c: Context) {
+    const user = c.get("user") as UserSession;
     const id = Number(c.req.param("id"));
 
     try {
-      const { user: updated, newStatus } = UserService.toggleStatus(id);
+      const { user: updated, newStatus } = UserService.toggleStatus(id, user.id);
       const statusLabel = newStatus === "ACTIVE" ? "activado" : "desactivado";
       return c.redirect(
         `/admin/users?notice=Usuario+«${encodeURIComponent(updated.full_name)}»+ha+sido+${statusLabel}`
@@ -81,10 +114,11 @@ export class UsersController {
    * POST /admin/users/:id/delete - Delete user
    */
   public static delete(c: Context) {
+    const user = c.get("user") as UserSession;
     const id = Number(c.req.param("id"));
 
     try {
-      UserService.delete(id);
+      UserService.delete(id, user.id);
       return c.redirect("/admin/users?notice=Usuario+eliminado+correctamente");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al eliminar el usuario.";
