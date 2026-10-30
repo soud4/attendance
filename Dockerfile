@@ -5,8 +5,8 @@ FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package.json bun.lock* ./
+# Copy dependency manifests and TypeScript/Bun configs
+COPY package.json bun.lock* tsconfig.json bunfig.toml ./
 
 # Install all dependencies (including devDependencies for Tailwind CLI)
 RUN bun install --frozen-lockfile || bun install
@@ -30,8 +30,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATABASE_PATH=/app/data/data.sqlite
 
-# Install production dependencies only
-COPY package.json bun.lock* ./
+# Install production dependencies and copy runtime configs
+COPY package.json bun.lock* tsconfig.json bunfig.toml ./
 RUN bun install --production --frozen-lockfile || bun install --production
 
 # Copy compiled public assets from builder
