@@ -26,6 +26,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .eslintcache
 .cache
 *.tsbuildinfo
+.astro/
+.agents/
+skills-lock.json
 
 # IntelliJ based IDEs
 .idea
