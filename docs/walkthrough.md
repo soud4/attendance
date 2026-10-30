@@ -60,6 +60,18 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
   - En [`AttendancesView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/attendances_view.tsx) y [`EventDetailView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/admin/event_detail_view.tsx), se visualizan columnas separadas de **Entrada** y **Salida** (o badge *"En curso"* si aún no marcó salida).
   - La exportación CSV incluye la columna `Fecha_Hora_Salida`.
 
+#### I. Visualización de Últimos 4 Eventos en la Interfaz Pública Principal (`/`)
+- **Límite y Orden**: Se listan únicamente los últimos 4 eventos creados, ordenados por antigüedad decreciente (`created_at DESC`), garantizando que los más recientes aparezcan primero.
+- **Detección Dinámica de Estado**: [`EventService.getLatestPublicEvents`](file:///home/souda/Laboratory/bandera-asistencia/src/services/event.service.ts) evalúa el auto-cierre y el horario programado de cada evento.
+- **Interactividad y Bordes Diferenciados**:
+  - **Eventos Activos (En el tiempo establecido)**:
+    - Destacados con **borde esmeralda prominente** (`border-2 border-emerald-500/80`), sombra con glow y punto verde pulsante.
+    - **Totalmente pulseables**: Enlace activo directo a `/asistir/:code` para registrar asistencia presencial.
+  - **Eventos Inactivos / Finalizados / Cerrados**:
+    - Borde atenuado (`border-neutral-800`), opacidad reducida (`opacity-60`) y badge gris *"Finalizado"*.
+    - **No pulseables**: Bloqueados con `cursor-not-allowed` y sin enlace activo, impidiendo accesos indebidos a eventos concluidos.
+- **Diseño Responsive**: Cuadrícula de 2 columnas en desktop/tablet y 1 columna en móvil en [`WelcomeView`](file:///home/souda/Laboratory/bandera-asistencia/src/views/public/welcome_view.tsx).
+
 ---
 
 ### 3. Verificación de Calidad
@@ -67,21 +79,22 @@ Se han completado e integrado en la rama `main` todas las fases del sistema de a
 ```bash
 # Verificación de TypeScript
 $ bun run typecheck
-✓ No type errors in 47 files [169.88ms]
+✓ No type errors in 48 files [112.11ms]
 
 # Compilación de estilos
 $ bun run build:css
 ≈ tailwindcss v4.3.3
-Done in 180ms
+Done in 67ms
 
 # Suite Completa de Tests
 $ bun test
- 92 pass
+ 96 pass
  0 fail
- 375 expect() calls
-Ran 92 tests across 8 files. [12.55s]
+ 402 expect() calls
+Ran 96 tests across 9 files. [3.78s]
 ```
 
+- `tests/public_events.test.ts`: 4 tests (Límite de 4 eventos, orden DESC, enlaces pulseables solo si activo y bordes esmeralda).
 - `tests/attendance_checkout.test.ts`: 6 tests (Flujo completo Check-in, Check-out, geocerca de salida, cookie y rehidratación).
 - `tests/attendance.test.ts`: 8 tests (Validación Haversine, formato DNI, check-in/check-out y unicidad).
 - `tests/mobile_and_pagination.test.ts`: 8 tests (Tarjetas comprimidas, alineación y cursores).
