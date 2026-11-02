@@ -58,7 +58,7 @@ export function AttendancesView({
               placeholder="Buscar por DNI, asistente o evento..."
               oninput="filterAndSortAttendances()"
               onkeyup="filterAndSortAttendances()"
-              class="w-full bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-white text-xs pl-10 pr-4 py-2.5 placeholder:text-neutral-500 focus:border-blue-500/80 focus:outline-none"
+              class="w-full bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-white text-sm pl-10 pr-4 py-2 placeholder:text-neutral-500 focus:border-blue-500/80 focus:outline-none"
             />
           </div>
 
@@ -70,7 +70,7 @@ export function AttendancesView({
                 id="attendanceDateFilter"
                 onchange="filterAndSortAttendances()"
                 title="Filtrar por fecha de marcación"
-                class="bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-neutral-300 text-xs px-2.5 py-2 focus:border-blue-500/80 focus:outline-none"
+                class="bg-neutral-800/90 border border-neutral-700/80 rounded-xl text-neutral-300 text-sm sm:text-xs px-2.5 py-2 focus:border-blue-500/80 focus:outline-none"
               />
               <button
                 type="button"
@@ -90,7 +90,7 @@ export function AttendancesView({
               type="button"
               id="attendanceOrderToggleBtn"
               onclick="toggleAttendanceOrder()"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/80 text-white text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/80 text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap"
               title="Cambiar orden por fecha de registro"
             >
               <svg id="attendanceOrderIcon" class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -102,12 +102,12 @@ export function AttendancesView({
         </div>
 
         {/* Dynamic Count Indicator */}
-        <div class="flex items-center justify-between text-[11px] text-neutral-400 font-mono pt-2 border-t border-neutral-800/70">
+        <div class="flex items-center justify-between text-xs text-neutral-400 font-mono pt-2 border-t border-neutral-800/70">
           <div>
             Mostrando <strong id="attendanceVisibleCount" class="text-white">{displayedCount}</strong> de {overallCount} marcaciones
           </div>
           {nextCursor != null && (
-            <span class="text-neutral-500 text-[10px]">Paginación activa</span>
+            <span class="text-neutral-500 text-xs">Paginación activa</span>
           )}
         </div>
       </div>
@@ -162,20 +162,20 @@ export function AttendancesView({
                     {/* Level 1: DNI, Method badge, and Event link */}
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
-                        <span class="attendee-dni font-mono font-bold text-white text-xs tracking-wider">
+                        <span class="attendee-dni font-mono font-bold text-white text-xs sm:text-sm tracking-wider">
                           {att.dni}
                         </span>
-                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
                           {att.method === "ASSISTED" ? (
                             <>
-                              <svg class="w-3 h-3 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                               <span>Asistido</span>
                             </>
                           ) : (
                             <>
-                              <svg class="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                               </svg>
                               <span>Autoservicio</span>
@@ -185,10 +185,10 @@ export function AttendancesView({
                       </div>
                       <a
                         href={`/admin/events/${att.event_id}`}
-                        class="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium"
+                        class="inline-flex items-center gap-1 text-xs sm:text-sm text-blue-400 hover:text-blue-300 font-medium"
                       >
                         <span>Ver Evento</span>
-                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                       </a>
@@ -196,26 +196,26 @@ export function AttendancesView({
 
                     {/* Level 2: Attendee Name (if present) & Base, Event Title */}
                     {att.attendee_name && (
-                      <div class="flex items-center gap-1.5 text-xs font-semibold text-white">
+                      <div class="flex items-center gap-1.5 text-sm font-semibold text-white">
                         <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         <span class="truncate">{att.attendee_name}</span>
                         {att.attendee_base && (
-                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-neutral-800 text-neutral-400 font-normal font-mono border border-neutral-700/50">
+                          <span class="px-1.5 py-0.2 rounded text-xs bg-neutral-800 text-neutral-400 font-normal font-mono border border-neutral-700/50">
                             {att.attendee_base}
                           </span>
                         )}
                       </div>
                     )}
 
-                    <div class="attendee-event text-xs font-semibold text-neutral-200">
+                    <div class="attendee-event text-sm font-semibold text-neutral-200">
                       <div>{att.event_title}</div>
-                      <div class="text-[10px] font-mono text-neutral-500 font-normal">{att.event_public_code}</div>
+                      <div class="text-xs font-mono text-neutral-400 font-normal">{att.event_public_code}</div>
                     </div>
 
                     {/* Level 3: Compact Timestamps & GPS Info with clean SVG icons */}
-                    <div class="flex flex-col gap-1 text-[11px] font-mono text-neutral-400 pt-1.5 border-t border-neutral-800/40">
+                    <div class="flex flex-col gap-1.5 text-xs font-mono text-neutral-300 pt-2 border-t border-neutral-800/40">
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-1.5">
                           <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -236,13 +236,13 @@ export function AttendancesView({
                               {formatTimePeru(att.check_out_at)}
                             </span>
                           ) : (
-                            <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
+                            <span class="px-2 py-0.5 rounded text-xs bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
                               En curso
                             </span>
                           )}
                         </div>
                       </div>
-                      <div class="flex items-center justify-between text-[10px] text-neutral-500 pt-0.5">
+                      <div class="flex items-center justify-between text-xs text-neutral-400 pt-0.5">
                         <span class="flex items-center gap-1">
                           <svg class="w-3 h-3 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

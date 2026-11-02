@@ -9,6 +9,12 @@ export const DNI_REGEX = /^\d{8}$/;
 // Geolocation & Distance (Haversine Earth radius)
 export const EARTH_RADIUS_METERS = 6_371_000;
 
+// Maximum allowed GPS inaccuracy (accuracy in meters) accepted without warning
+// If browser accuracy is higher than 150m, it usually indicates cell tower or low-precision Wi-Fi fallback.
+export const MAX_REASONABLE_ACCURACY_METERS = 150;
+// Maximum GPS uncertainty buffer added to event radius to accommodate indoor/attenuated signals
+export const GPS_TOLERANCE_BUFFER_METERS = 50;
+
 // Event coverage radius parameters
 export const DEFAULT_RADIUS_METERS = 100;
 export const MIN_RADIUS_METERS = 10;

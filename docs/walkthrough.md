@@ -121,3 +121,64 @@ Ran 107 tests across 10 files. [5.81s]
 - `tests/errors.test.ts`: 16 tests (404, 401, 403, 500 y negociación de contenido).
 - `tests/admin.test.ts`: 14 tests (Autenticación y sesiones Argon2id/JWT).
 - `tests/db.test.ts`: 6 tests (Esquemas e integridad SQLite con columna `check_out_at`).
+
+---
+
+## 5. Arquitectura de Vistas Modulares, Componentes Shadcn y Transiciones Nativas (Fase Hono JSX + Alpine)
+
+### A. Resultados de la Reestructuración
+- **`DashboardView`**: De **1,208 líneas** a **127 líneas**.
+- **`UsersView`**: De **960 líneas** a **68 líneas**.
+- **`AdminLayout`**: De **394 líneas** a **59 líneas**.
+- **`LoginView`**: De **168 líneas** a **112 líneas**.
+- **`WelcomeView`**: De **240 líneas** a **149 líneas**.
+
+### B. Nuevos Componentes Atómicos UI (`src/views/components/ui/`)
+- **`Icon`**: Catálogo único y centralizado de SVGs para todo el proyecto (`calendar`, `users`, `location`, `clock`, `check`, `x`, `plus`, `search`, `cards`, `table`, etc.).
+- **`Badge`**: Componente estándar con puntos pulsantes y variantes (`open`, `closed`, `admin`, `coordinator`, `check_in`, `check_out`).
+- **`Alert`**: Mensajes de feedback visual tipo banner (`info`, `success`, `error`, `warning`).
+- **`Modal`**: Modal accesible con compatibilidad híbrida para Alpine.js (`x-show`, `x-cloak`, animaciones sutiles `scale` + `fade`, cierre por tecla Escape o click exterior) y Vanilla JS.
+- **`StatCard`**: Tarjeta de métricas reutilizable con soporte de destacados.
+
+### C. Layouts Desacoplados y Transiciones Globales
+- **`BaseHead`**: `<head>` unificado con Cross-Document View Transitions API (`@view-transition { navigation: auto; }`) para transiciones fluidas estilo SPA al navegar entre páginas MPA (como en Laravel/Turbo).
+- **`AdminLayout`**: Compone `AdminMobileNav` (con drawer deslizante) y `AdminSidebar` permanente, evitando duplicidad de enlaces y tarjetas de usuario.
+- **`AuthLayout`**: Layout limpio para autenticación y login.
+- **`PublicLayout`**: Layout compartido para pantallas de bienvenida y asistencia pública.
+
+### D. Scripts Cliente Externos (`public/js/admin/`)
+- **`dashboard.js`**: Búsqueda en vivo, ordenamiento, filtrado por fecha y pestañas de estado sin recarga.
+- **`map-picker.js`**: Lógica de mapa Leaflet, geocodificación OSM y radio en metros reutilizable.
+- **`users.js`**: Lógica cliente de modales y filtros de coordinadores.
+- **`vendor/alpine.min.js`**: Alpine v3 local (44KB uncompressed, ~15KB gzipped), servido estáticamente sin depender de CDNs externos.
+
+### E. Verificación
+```bash
+$ bun test
+123 pass
+0 fail
+489 expect() calls
+Ran 123 tests across 11 files. [5.86s]
+```
+
+---
+
+## 4. Tipografía Mobile Refinada y Corrección de Scroll en Modales
+
+### A. Corrección del Conflicto de Scroll en Modales
+1. **Bloqueo del Scroll del Fondo (`lockBodyScroll` / `unlockBodyScroll`)**:
+   - Se implementó en [`public/js/admin/dashboard.js`](file:///home/souda/Laboratory/bandera-asistencia/public/js/admin/dashboard.js) y [`public/js/admin/users.js`](file:///home/souda/Laboratory/bandera-asistencia/public/js/admin/users.js) el bloqueo del `overflow` en `document.documentElement` y `document.body` al abrir los modales de creación o edición.
+2. **Aislamiento de Desplazamiento (`overscroll-contain`)**:
+   - En [`Modal`](file:///home/souda/Laboratory/bandera-asistencia/src/views/components/ui/modal.tsx), tanto el overlay como el contenedor interno cuentan con `overscroll-behavior: contain`, impidiendo el efecto de "scroll chaining" hacia la página principal.
+3. **Desactivación de Captura de Rueda en Leaflet**:
+   - En [`public/js/admin/map-picker.js`](file:///home/souda/Laboratory/bandera-asistencia/public/js/admin/map-picker.js), se configuró `scrollWheelZoom: false` para evitar que el mapa capture los gestos de deslizamiento o la rueda del mouse mientras se navega el formulario del modal.
+
+### B. Ajuste de Tipografía en Modo Móvil (Legibilidad Mejorada)
+- **Eliminación de Microtextos**: Se elevaron los textos de `text-[10px]` y `text-[11px]` a un legible y nítido `text-xs` (12px) en badges, metadatos y fechas.
+- **Entradas de Texto y Filtros**: Se ajustaron a `text-sm` (14px) en inputs de búsqueda y fecha, evitando además el auto-zoom indeseado en Safari iOS.
+- **Títulos y Nombres en Cards Móviles**:
+  - Títulos de eventos: `text-base font-bold`.
+  - Nombres de coordinadores y asistentes: `text-base font-semibold` o `text-sm font-semibold`.
+  - Identificadores y DNI: `text-sm font-bold font-mono tracking-wider`.
+- **Botones de Acción**: Estandarizados a `text-xs sm:text-sm font-semibold`.
+

@@ -67,14 +67,20 @@ export class EventClosedError extends AppError {
 export class OutOfRadiusError extends AppError {
   public distanceMeters: number;
   public allowedRadius: number;
+  public accuracy?: number;
 
-  constructor(distanceMeters: number, allowedRadius: number) {
+  constructor(distanceMeters: number, allowedRadius: number, accuracy?: number) {
+    const hint =
+      accuracy && accuracy > 100
+        ? ` Tu dispositivo reportó una precisión baja de ±${Math.round(accuracy)}m (posible señal de antena celular o ubicación aproximada). Activa 'Ubicación precisa' en los ajustes de tu navegador.`
+        : "";
     super(
-      `Te encuentras a aproximadamente ${distanceMeters} metros del lugar del evento, superando el radio permitido de ${allowedRadius} metros.`,
+      `Te encuentras a aproximadamente ${distanceMeters} metros del lugar del evento, superando el radio permitido de ${allowedRadius} metros.${hint}`,
       400
     );
     this.distanceMeters = distanceMeters;
     this.allowedRadius = allowedRadius;
+    this.accuracy = accuracy;
   }
 }
 

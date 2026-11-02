@@ -196,7 +196,7 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
         <div class="px-5 py-4 border-b border-neutral-800 flex items-center justify-between">
           <div>
             <h2 class="text-sm font-bold text-white tracking-tight">Listado de Asistencias Registradas</h2>
-            <p class="text-[11px] text-neutral-400 mt-0.5">Participantes que marcaron presencia dentro del radio autorizado</p>
+            <p class="text-xs text-neutral-400 mt-0.5">Participantes que marcaron presencia dentro del radio autorizado</p>
           </div>
           <span class="text-xs font-mono text-neutral-400">Total: {attendances.length}</span>
         </div>
@@ -216,22 +216,22 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                 <div class="p-3.5 space-y-1.5">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-mono text-neutral-500 text-[11px]">#{idx + 1}</span>
-                      <span class="font-mono font-bold text-white text-xs tracking-wider">{att.dni}</span>
+                      <span class="font-mono text-neutral-400 text-xs">#{idx + 1}</span>
+                      <span class="font-mono font-bold text-white text-xs sm:text-sm tracking-wider">{att.dni}</span>
                     </div>
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700/60">
                       {att.method === "ASSISTED" ? "Asistido" : "Autoservicio"}
                     </span>
                   </div>
 
                   {att.attendee_name && (
-                    <div class="text-xs font-semibold text-white">
+                    <div class="text-sm font-semibold text-white">
                       {att.attendee_name}
                       {att.attendee_base && <span class="text-neutral-400 font-normal ml-1">({att.attendee_base})</span>}
                     </div>
                   )}
 
-                  <div class="flex flex-col gap-1 text-[11px] font-mono text-neutral-400 pt-1 border-t border-neutral-800/40">
+                  <div class="flex flex-col gap-1 text-xs font-mono text-neutral-300 pt-1 border-t border-neutral-800/40">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-1.5">
                         <span class="text-neutral-500">Entrada:</span>
@@ -246,13 +246,13 @@ export function EventDetailView({ event, attendances }: EventDetailViewProps) {
                             {formatTimePeru(att.check_out_at)}
                           </span>
                         ) : (
-                          <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
+                          <span class="px-2 py-0.5 rounded text-xs bg-amber-950/60 text-amber-400 border border-amber-800/40 font-semibold">
                             En curso
                           </span>
                         )}
                       </div>
                     </div>
-                    <div class="flex items-center justify-between text-[10px] text-neutral-500 pt-0.5">
+                    <div class="flex items-center justify-between text-xs text-neutral-400 pt-0.5">
                       <span>{att.distance_meters}m &bull; &plusmn;{Math.round(att.accuracy_meters)}m GPS</span>
                       <span>
                         {formatDatePeru(att.created_at)}

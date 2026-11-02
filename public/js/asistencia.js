@@ -70,28 +70,29 @@
     }
   }
 
-  // Función robusta para capturar ubicación: intenta alta precisión y si falla hace fallback a normal
+  // Función robusta para capturar ubicación
+  // Requiere alta precisión y descarta caché obsoleta (maximumAge: 0)
   function fetchBrowserPosition(onSuccess, onError) {
     if (!navigator.geolocation) {
       onError({ code: 0, message: "Tu navegador no soporta geolocalización." });
       return;
     }
 
-    // Intento 1: Alta precisión
+    // Intento 1: Alta precisión con timeout adecuado (10 segundos) y coordenadas en tiempo real (maximumAge: 0)
     navigator.geolocation.getCurrentPosition(
       onSuccess,
       function(firstErr) {
-        console.warn("Intento con alta precisión falló, reintentando con precisión estándar...", firstErr);
-        // Intento 2: Precisión estándar con timeout amplio (esencial para computadoras y laptops sin antena GPS satelital)
+        console.warn("Intento con alta precisión falló o demoró, reintentando...", firstErr);
+        // Intento 2 de rescate con alta precisión todavía habilitada y timeout extendido (12 segundos)
         navigator.geolocation.getCurrentPosition(
           onSuccess,
           function(secondErr) {
             onError(secondErr || firstErr);
           },
-          { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }
 
@@ -327,17 +328,23 @@
       busy(true, isCheckout ? "Obteniendo ubicación para salida..." : "Obteniendo ubicación GPS...");
       clear();
 
-      // Si ya tenemos coordenadas recientes (< 45s) las enviamos directamente
+      // Si tenemos coordenadas muy frescas (< 10s) las enviamos
       var cached = window.__LAST_COORDS__;
-      if (cached && (Date.now() - cached.timestamp < 45000)) {
+      if (cached && (Date.now() - cached.timestamp < 10000)) {
         enviarAsistencia(dni, cached.latitude, cached.longitude, cached.accuracy);
         return;
       }
 
-      // De lo contrario capturamos la ubicación
+      // De lo contrario capturamos la ubicación en tiempo real
       fetchBrowserPosition(
         function(pos) {
           setGpsState("granted");
+          window.__LAST_COORDS__ = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: Date.now()
+          };
           enviarAsistencia(dni, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
         },
         function(err) {
@@ -354,13 +361,13 @@
 
     if (err.code === 1) { // PERMISSION_DENIED
       setGpsState("denied");
-      msg = "Permiso de ubicación denegado. Haz clic en el ícono del candado o ajustes del sitio junto a la URL en tu navegador y activa 'Ubicación' para este sitio. En Android, cierra burbujas flotantes de chat si aparecen.";
+      msg = "Permiso de ubicación denegado. Toca el ícono junto a la URL en tu navegador y activa 'Ubicación' (y asegúrate de activar 'Ubicación precisa').";
     } else if (err.code === 2) { // POSITION_UNAVAILABLE
       setGpsState("prompt");
-      msg = "No se pudo obtener la posición del dispositivo. Verifica que la ubicación de tu equipo o teléfono esté encendida.";
+      msg = "No se pudo obtener la posición satelital. Verifica que la ubicación de tu teléfono esté encendida en modo 'Alta precisión'.";
     } else if (err.code === 3) { // TIMEOUT
       setGpsState("prompt");
-      msg = "Tiempo de espera agotado al consultar el GPS. Pulsa el botón 'Permitir GPS' o reintenta.";
+      msg = "El sensor GPS tardó en responder. Asegúrate de estar en un lugar con cielo despejado o pulsa 'Reintentar'.";
     } else {
       msg = err.message || "Error al acceder al sensor de ubicación.";
     }

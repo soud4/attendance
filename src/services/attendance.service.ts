@@ -9,7 +9,7 @@ import {
   OutOfRadiusError,
   AttendanceAlreadyRegisteredError,
 } from "./errors";
-import { EARTH_RADIUS_METERS, DNI_REGEX } from "../config";
+import { EARTH_RADIUS_METERS, DNI_REGEX, GPS_TOLERANCE_BUFFER_METERS } from "../config";
 
 export interface RegisterAttendanceInput {
   eventPublicCode: string;
@@ -152,8 +152,13 @@ export class AttendanceService {
       input.longitude
     );
 
-    if (distanceMeters > event.radius_meters) {
-      throw new OutOfRadiusError(distanceMeters, event.radius_meters);
+    // Apply a reasonable GPS accuracy buffer (up to GPS_TOLERANCE_BUFFER_METERS)
+    // to account for antenna attenuation, indoor degradation, and device margins.
+    const accuracyBuffer = Math.min(Math.max(0, input.accuracy || 0), GPS_TOLERANCE_BUFFER_METERS);
+    const effectiveAllowedRadius = event.radius_meters + accuracyBuffer;
+
+    if (distanceMeters > effectiveAllowedRadius) {
+      throw new OutOfRadiusError(distanceMeters, event.radius_meters, input.accuracy);
     }
 
     // 6. Fast In-Memory Check for fully completed attendees (0 ms)
