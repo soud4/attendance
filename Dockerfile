@@ -43,8 +43,9 @@ RUN bun install --production --frozen-lockfile || bun install --production
 # Copy compiled public assets from builder
 COPY --from=builder /app/public ./public
 
-# Copy application source code
+# Copy application source code and scripts
 COPY src ./src
+COPY scripts ./scripts
 
 # Create data directory for SQLite persistence and set permissions
 RUN mkdir -p /app/data && chown -R bun:bun /app

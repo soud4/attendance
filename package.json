@@ -10,7 +10,8 @@
     "start": "bun run src/index.ts",
     "test": "bun test",
     "db:init": "bun run src/db/init.ts",
-    "db:seed": "bun run src/db/seed.ts"
+    "db:seed": "bun run src/db/seed.ts",
+    "backup": "bun run scripts/backup.ts"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
